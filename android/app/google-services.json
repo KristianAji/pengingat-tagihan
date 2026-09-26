@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "42693545986",
+    "project_id": "pengingat-tagihan-app-01",
+    "storage_bucket": "pengingat-tagihan-app-01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:42693545986:android:b8be714df7d72a5c5b971b",
+        "android_client_info": {
+          "package_name": "com.pengingattagihan.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPJ2ENO-OBwrFaumoqQkwUj4-P6lly8Kk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
