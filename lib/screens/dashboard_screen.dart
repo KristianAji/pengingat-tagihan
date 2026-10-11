@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/category_pie_chart.dart';
 import '../widgets/dashboard_bill_card.dart';
+import '../widgets/burn_rate_card.dart';
 import 'add_bill_screen.dart';
 import 'bill_list_screen.dart';
 
@@ -40,6 +41,10 @@ class DashboardScreen extends StatelessWidget {
           style: TextStyle(color: AppColors.textMuted),
         ),
         const SizedBox(height: 18),
+
+        // ── Fitur 1: Budget Burn-Rate & Predictor (kartu utama) ──
+        const BurnRateCard(),
+        const SizedBox(height: 22),
 
         // ── Section 1: total + 2 tagihan terdekat ──
         _sectionTitle('Ringkasan Bulan Ini'),

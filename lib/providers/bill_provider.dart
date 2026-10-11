@@ -4,7 +4,10 @@ import 'package:flutter/foundation.dart';
 
 import '../models/bill.dart';
 import '../models/history_entry.dart';
+import '../models/user_profile.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
+import '../utils/burn_rate.dart';
 
 /// State utama aplikasi, kini bersumber dari Firestore (per-pengguna).
 /// Data diperbarui otomatis lewat stream snapshots().
@@ -17,13 +20,16 @@ class BillProvider extends ChangeNotifier {
 
   StreamSubscription? _billsSub;
   StreamSubscription? _historySub;
+  StreamSubscription? _profileSub;
 
   List<Bill> _bills = [];
   List<HistoryEntry> _history = [];
+  UserProfile _profile = UserProfile.empty;
   bool _loading = true;
 
   List<Bill> get bills => List.unmodifiable(_bills);
   List<HistoryEntry> get history => List.unmodifiable(_history);
+  UserProfile get profile => _profile;
   bool get loading => _loading;
 
   void _subscribe() {
@@ -31,9 +37,15 @@ class BillProvider extends ChangeNotifier {
       _bills = data;
       _loading = false;
       notifyListeners();
+      // Fitur 2: jadwalkan ulang notifikasi tiap kali daftar tagihan berubah.
+      NotificationService.instance.scheduleForBills(_bills);
     });
     _historySub = _service.historyStream().listen((data) {
       _history = data;
+      notifyListeners();
+    });
+    _profileSub = _service.profileStream().listen((data) {
+      _profile = data;
       notifyListeners();
     });
   }
@@ -42,6 +54,7 @@ class BillProvider extends ChangeNotifier {
   void dispose() {
     _billsSub?.cancel();
     _historySub?.cancel();
+    _profileSub?.cancel();
     super.dispose();
   }
 
@@ -68,6 +81,18 @@ class BillProvider extends ChangeNotifier {
     }
     return map;
   }
+
+  // ── Fitur 1: Budget Burn-Rate & Predictor ──
+
+  /// Hasil perhitungan burn-rate dari profil + tagihan saat ini.
+  BurnRateResult get burnRate =>
+      BurnRateCalculator.calculate(_profile, _bills);
+
+  /// true jika pengguna sudah mengisi pemasukan & tanggal gajian.
+  bool get hasProfile => _profile.isSet;
+
+  Future<void> saveProfile(UserProfile profile) =>
+      _service.saveProfile(profile);
 
   // ── Aksi (menulis ke Firestore) ──
 

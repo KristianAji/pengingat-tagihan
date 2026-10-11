@@ -89,19 +89,36 @@ class Bill {
       reminderOffsets.map((d) => 'H-$d').join(', ');
 
   /// Tanggal jatuh tempo berikutnya setelah dibayar (maju satu periode).
-  DateTime get nextDueDate {
+  DateTime get nextDueDate => _advanceFrom(dueDate);
+
+  /// Tanggal jatuh tempo berikutnya yang benar-benar SETELAH [ref]
+  /// (biasanya hari ini). Untuk tagihan yang sudah telat beberapa periode,
+  /// tanggal terus dimajukan per periode penuh sampai berada di masa depan,
+  /// sehingga tagihan telat tidak lagi "jatuh tempo" setelah dilunasi.
+  DateTime nextDueDateAfter(DateTime ref) {
+    var next = _advanceFrom(dueDate);
+    var guard = 0;
+    while (!next.isAfter(ref) && guard < 20000) {
+      next = _advanceFrom(next);
+      guard++;
+    }
+    return next;
+  }
+
+  /// Majukan [from] sebanyak satu periode perulangan.
+  DateTime _advanceFrom(DateTime from) {
     switch (repeatUnit) {
       case RepeatUnit.hari:
-        return dueDate.add(Duration(days: repeatEvery));
+        return from.add(Duration(days: repeatEvery));
       case RepeatUnit.minggu:
-        return dueDate.add(Duration(days: repeatEvery * 7));
+        return from.add(Duration(days: repeatEvery * 7));
       case RepeatUnit.bulan:
         return DateTime(
-          dueDate.year,
-          dueDate.month + repeatEvery,
-          dueDate.day,
-          dueDate.hour,
-          dueDate.minute,
+          from.year,
+          from.month + repeatEvery,
+          from.day,
+          from.hour,
+          from.minute,
         );
     }
   }
