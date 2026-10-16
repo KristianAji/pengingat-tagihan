@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../models/bill.dart';
 import '../providers/bill_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/expandable_bill_card.dart';
+import '../widgets/sort_chip_bar.dart';
 import 'add_bill_screen.dart';
 
 /// Halaman 2: Daftar Tagihan & Belanja.
@@ -21,7 +23,7 @@ class _BillListScreenState extends State<BillListScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BillProvider>();
-    final bills = provider.upcoming;
+    final bills = provider.sortedBills;
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
@@ -61,14 +63,28 @@ class _BillListScreenState extends State<BillListScreen> {
               ),
             ),
             const SizedBox(height: 18),
+            if (bills.isNotEmpty) ...[
+              SortChipBar(
+                mode: provider.sortMode,
+                ascending: provider.sortAscending,
+                onSelect: provider.setSort,
+              ),
+              const SizedBox(height: 18),
+            ],
             if (bills.isEmpty)
               const Padding(
-                padding: EdgeInsets.only(top: 60),
+                padding: EdgeInsets.only(top: 40),
                 child: Center(
-                  child: Text(
-                    'Belum ada daftar.\nTambahkan tagihan atau belanja pertamamu.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textMuted),
+                  child: Column(
+                    children: [
+                      AppLogo(size: 96),
+                      SizedBox(height: 4),
+                      Text(
+                        'Belum ada daftar.\nTambahkan tagihan atau belanja pertamamu.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -84,6 +100,7 @@ class _BillListScreenState extends State<BillListScreen> {
                     ),
                     onPay: () => _confirmPay(context, b),
                     onDelete: () => _confirmDelete(context, b),
+                    onToggleMandatory: () => _toggleMandatory(context, b),
                   ),
                 ),
               ),
@@ -91,6 +108,23 @@ class _BillListScreenState extends State<BillListScreen> {
         ),
       ),
     );
+  }
+
+  /// Ubah penanda kebutuhan pokok langsung dari kartu.
+  ///
+  /// Dipakai sebagai jalan pintas karena layar "edit daftar" belum ada —
+  /// tanpa ini, penanda hanya bisa diisi saat item dibuat, sehingga item lama
+  /// tidak bisa dikeluarkan dari hitungan Dana Darurat.
+  Future<void> _toggleMandatory(BuildContext context, Bill bill) async {
+    final provider = context.read<BillProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    // Berhasil = diam; Firestore mengirim perubahan lokalnya sendiri sehingga
+    // switch langsung bergerak tanpa perlu setState di sini.
+    if (await provider.setMandatory(bill, !bill.isMandatory)) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(provider.lastError ?? 'Gagal menyimpan perubahan.'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   void _confirmPay(BuildContext context, Bill bill) {
@@ -106,10 +140,21 @@ class _BillListScreenState extends State<BillListScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
-              context.read<BillProvider>().markAsPaid(bill.id);
+            onPressed: () async {
+              // Ditangkap sebelum await supaya tidak memakai context yang
+              // sudah di-pop saat menampilkan pesan gagal.
+              final provider = context.read<BillProvider>();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
+              final ok = await provider.markAsPaid(bill.id);
+              if (!mounted) return;
               setState(() => _expandedId = null);
+              if (!ok) {
+                messenger.showSnackBar(SnackBar(
+                  content: Text(provider.lastError ?? 'Gagal menandai lunas.'),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
             },
             child: const Text('Ya, Lunasi'),
           ),
@@ -132,10 +177,19 @@ class _BillListScreenState extends State<BillListScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () {
-              context.read<BillProvider>().deleteBill(bill.id);
+            onPressed: () async {
+              final provider = context.read<BillProvider>();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
+              final ok = await provider.deleteBill(bill.id);
+              if (!mounted) return;
               setState(() => _expandedId = null);
+              if (!ok) {
+                messenger.showSnackBar(SnackBar(
+                  content: Text(provider.lastError ?? 'Gagal menghapus.'),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
             },
             child: const Text('Hapus'),
           ),

@@ -20,7 +20,29 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
-  bool _ready = false;
+
+  /// Plugin sudah siap dipakai menjadwalkan notifikasi.
+  ///
+  /// Sengaja TIDAK dipengaruhi hasil permintaan izin: pengguna yang menolak
+  /// izin tetap bisa memakai aplikasi, dan penjadwalan tetap berjalan
+  /// (Android yang menyembunyikan notifikasinya). Dulu satu kegagalan izin
+  /// mematikan penjadwalan sampai aplikasi di-restart.
+  bool _initialized = false;
+
+  /// Sedang menjalankan [init] — mencegah dua init berjalan bersamaan.
+  bool _initializing = false;
+
+  /// Tagihan terakhir yang diterima. null = belum ada snapshot sama sekali.
+  ///
+  /// [scheduleForBills] dipanggil dari stream Firestore, yang bisa berbunyi
+  /// sebelum [init] selesai (init kini dijalankan setelah frame pertama).
+  /// Daftarnya disimpan di sini dan dijadwalkan begitu plugin siap.
+  List<Bill>? _pendingBills;
+
+  /// Rantai penjadwalan, supaya dua pemanggilan tidak saling sisip. Tanpa ini,
+  /// `cancelAll()` milik proses kedua bisa menghapus jadwal yang baru saja
+  /// ditulis proses pertama.
+  Future<void> _scheduleChain = Future<void>.value();
 
   // ── Channel id per tingkat urgensi ──
   static const String _chLow = 'reminder_low';
@@ -31,27 +53,49 @@ class NotificationService {
   static const int _fireHour = 8;
   static const int _fireMinute = 0;
 
-  /// Inisialisasi plugin + zona waktu + channel + izin. Dipanggil di main().
+  /// Inisialisasi plugin + zona waktu + channel + izin.
+  ///
+  /// Aman dipanggil dari mana saja dan tidak pernah melempar: kegagalan cukup
+  /// membuat notifikasi nonaktif, aplikasi tetap jalan.
   Future<void> init() async {
-    if (_ready) return;
-
-    tzdata.initializeTimeZones();
+    if (_initialized || _initializing) return;
+    _initializing = true;
     try {
-      final localZone = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(localZone.identifier));
-    } catch (_) {
-      // Bila gagal mendeteksi zona, biarkan default (UTC).
+      tzdata.initializeTimeZones();
+      try {
+        final localZone = await FlutterTimezone.getLocalTimezone();
+        tz.setLocalLocation(tz.getLocation(localZone.identifier));
+      } catch (_) {
+        // Zona tetap UTC. Jam pengingat TIDAK ikut bergeser: TZDateTime.from
+        // mempertahankan instant absolut, jadi notifikasi tetap dikirim pada
+        // pukul 08:00 waktu perangkat.
+      }
+
+      try {
+        const AndroidInitializationSettings androidInit =
+            AndroidInitializationSettings('@mipmap/ic_launcher');
+        const InitializationSettings initSettings =
+            InitializationSettings(android: androidInit);
+        await _plugin.initialize(settings: initSettings);
+        await _createChannels();
+      } catch (_) {
+        // Plugin benar-benar tidak bisa dipakai; penjadwalan tidak akan pernah
+        // berhasil, jadi biarkan tetap ditandai belum siap.
+        return;
+      }
+
+      _initialized = true;
+
+      // Permintaan izin dipisah dari inisialisasi dan kegagalannya sengaja
+      // diabaikan — lihat catatan pada [_initialized].
+      try {
+        await _requestPermissions();
+      } catch (_) {}
+
+      await _enqueueSchedule();
+    } finally {
+      _initializing = false;
     }
-
-    const AndroidInitializationSettings androidInit =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initSettings =
-        InitializationSettings(android: androidInit);
-    await _plugin.initialize(settings: initSettings);
-
-    await _createChannels();
-    await _requestPermissions();
-    _ready = true;
   }
 
   AndroidFlutterLocalNotificationsPlugin? get _android =>
@@ -93,8 +137,42 @@ class NotificationService {
 
   /// Jadwalkan ulang seluruh notifikasi dari daftar [bills].
   /// Dipanggil setiap kali data tagihan berubah.
-  Future<void> scheduleForBills(List<Bill> bills) async {
-    if (!_ready) return;
+  ///
+  /// Tidak pernah melempar, jadi aman dipanggil tanpa `await`.
+  Future<void> scheduleForBills(List<Bill> bills) {
+    _pendingBills = bills;
+    if (!_initialized) return Future<void>.value();
+    return _enqueueSchedule();
+  }
+
+  /// Batalkan semua pengingat, termasuk daftar tagihan yang masih tertunda.
+  /// Dipakai saat keluar akun supaya notifikasi akun lama tidak muncul lagi.
+  Future<void> cancelAll() async {
+    _pendingBills = null;
+    try {
+      await _plugin.cancelAll();
+    } catch (_) {
+      // Gagal membatalkan tidak boleh menghalangi proses keluar.
+    }
+  }
+
+  // ── Internal ──
+
+  /// Masukkan satu penjadwalan ke rantai.
+  Future<void> _enqueueSchedule() {
+    _scheduleChain = _scheduleChain.then((_) => _applySchedule()).catchError(
+      (Object _) {
+        // Kegagalan menjadwalkan tidak boleh memutus rantai berikutnya.
+      },
+    );
+    return _scheduleChain;
+  }
+
+  Future<void> _applySchedule() async {
+    final bills = _pendingBills;
+    // Belum ada snapshot: jangan hapus jadwal yang sudah ada.
+    if (bills == null) return;
+
     await _plugin.cancelAll();
 
     final now = DateTime.now();
@@ -102,14 +180,14 @@ class NotificationService {
       for (final offset in bill.reminderOffsets) {
         final fireDate = _fireDateFor(bill.dueDate, offset);
         if (fireDate.isBefore(now)) continue; // lewat, lewati
-        await _scheduleOne(bill, offset, fireDate);
+        try {
+          await _scheduleOne(bill, offset, fireDate);
+        } catch (_) {
+          // Satu tagihan gagal tidak boleh menggagalkan tagihan lainnya.
+        }
       }
     }
   }
-
-  Future<void> cancelAll() => _plugin.cancelAll();
-
-  // ── Internal ──
 
   DateTime _fireDateFor(DateTime dueDate, int offset) {
     final d = dueDate.subtract(Duration(days: offset));

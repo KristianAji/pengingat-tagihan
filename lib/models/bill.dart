@@ -29,6 +29,13 @@ class Bill {
   final String name;
   final BillType type;
 
+  /// true bila item ini termasuk kebutuhan pokok.
+  ///
+  /// Dipakai sebagai dasar perhitungan Dana Darurat (fitur 3) dan tagihan
+  /// wajib pada Burn-Rate (fitur 1). Bila tidak diisi saat membuat objek,
+  /// nilainya mengikuti [type]: Tagihan dianggap wajib, Belanja tidak.
+  final bool isMandatory;
+
   /// "Diulang setiap": angka + satuan (contoh: 30 Hari sekali).
   final int repeatEvery;
   final RepeatUnit repeatUnit;
@@ -53,7 +60,11 @@ class Bill {
 
   final DateTime createdAt;
 
-  const Bill({
+  /// [isMandatory] sengaja opsional dan TIDAK `const`: kalau tidak diisi,
+  /// nilainya diturunkan dari [type] (Tagihan = wajib, Belanja = tidak).
+  /// Dengan begitu dokumen lama yang belum punya field ini tetap terhitung
+  /// benar tanpa perlu migrasi data.
+  Bill({
     required this.id,
     required this.name,
     required this.type,
@@ -66,7 +77,8 @@ class Bill {
     this.repeatLimit,
     this.remaining,
     required this.createdAt,
-  });
+    bool? isMandatory,
+  }) : isMandatory = isMandatory ?? (type == BillType.tagihan);
 
   /// Jumlah hari menuju jatuh tempo (bisa negatif jika terlewat).
   int get daysUntilDue {
@@ -76,9 +88,15 @@ class Bill {
     return due.difference(today).inDays;
   }
 
-  bool get isDueThisMonth {
+  /// true bila jatuh tempo bulan ini ATAU sudah terlewat (belum dibayar).
+  ///
+  /// Dipakai Beranda supaya tagihan telat dari bulan lalu tetap ikut terhitung,
+  /// bukan menghilang begitu bulannya berganti.
+  bool get isDueOrOverdue {
     final now = DateTime.now();
-    return dueDate.year == now.year && dueDate.month == now.month;
+    // DateTime(y, m + 1, 0) = hari terakhir bulan ini.
+    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    return !dueDate.isAfter(endOfMonth);
   }
 
   /// Deskripsi perulangan, contoh: "30 Hari Sekali".
@@ -113,14 +131,42 @@ class Bill {
       case RepeatUnit.minggu:
         return from.add(Duration(days: repeatEvery * 7));
       case RepeatUnit.bulan:
-        return DateTime(
-          from.year,
-          from.month + repeatEvery,
-          from.day,
-          from.hour,
-          from.minute,
-        );
+        return _addMonths(from, repeatEvery);
     }
+  }
+
+  /// Majukan [from] sebanyak [months] bulan.
+  DateTime _addMonths(DateTime from, int months) {
+    final total = from.month - 1 + months;
+    return dateInMonth(
+      from.year + total ~/ 12,
+      total % 12 + 1,
+      from.day,
+      hour: from.hour,
+      minute: from.minute,
+    );
+  }
+
+  /// Tanggal [day] pada bulan [month] tahun [year].
+  ///
+  /// Bila bulan itu tidak punya tanggal tersebut — contoh tanggal 31 di
+  /// Februari — dipakai tanggal terakhir bulan itu, sehingga pengingat tidak
+  /// melompat ke bulan berikutnya.
+  static DateTime dateInMonth(
+    int year,
+    int month,
+    int day, {
+    int hour = 0,
+    int minute = 0,
+  }) {
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(
+      year,
+      month,
+      day <= lastDay ? day : lastDay,
+      hour,
+      minute,
+    );
   }
 
   Bill copyWith({
@@ -134,6 +180,7 @@ class Bill {
     String? paymentMethod,
     int? repeatLimit,
     int? remaining,
+    bool? isMandatory,
   }) {
     return Bill(
       id: id,
@@ -148,6 +195,7 @@ class Bill {
       repeatLimit: repeatLimit ?? this.repeatLimit,
       remaining: remaining ?? this.remaining,
       createdAt: createdAt,
+      isMandatory: isMandatory ?? this.isMandatory,
     );
   }
 
@@ -164,23 +212,29 @@ class Bill {
         'repeatLimit': repeatLimit,
         'remaining': remaining,
         'createdAt': createdAt.toIso8601String(),
+        'isMandatory': isMandatory,
       };
 
-  factory Bill.fromMap(Map<String, dynamic> map) => Bill(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        type: BillType.values[map['type'] as int],
-        repeatEvery: map['repeatEvery'] as int,
-        repeatUnit: RepeatUnit.values[map['repeatUnit'] as int],
-        dueDate: DateTime.parse(map['dueDate'] as String),
-        reminderOffsets:
-            (map['reminderOffsets'] as List).map((e) => e as int).toList(),
-        estimatedCost: (map['estimatedCost'] as num).toDouble(),
-        paymentMethod: map['paymentMethod'] as String,
-        repeatLimit: map['repeatLimit'] as int?,
-        remaining: map['remaining'] as int?,
-        createdAt: DateTime.parse(map['createdAt'] as String),
-      );
+  factory Bill.fromMap(Map<String, dynamic> map) {
+    final type = BillType.values[map['type'] as int];
+    return Bill(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      type: type,
+      repeatEvery: map['repeatEvery'] as int,
+      repeatUnit: RepeatUnit.values[map['repeatUnit'] as int],
+      dueDate: DateTime.parse(map['dueDate'] as String),
+      reminderOffsets:
+          (map['reminderOffsets'] as List).map((e) => e as int).toList(),
+      estimatedCost: (map['estimatedCost'] as num).toDouble(),
+      paymentMethod: map['paymentMethod'] as String,
+      repeatLimit: map['repeatLimit'] as int?,
+      remaining: map['remaining'] as int?,
+      createdAt: DateTime.parse(map['createdAt'] as String),
+      // Dokumen lama belum menyimpan field ini -> pakai bawaan dari jenisnya.
+      isMandatory: map['isMandatory'] as bool? ?? (type == BillType.tagihan),
+    );
+  }
 
   String toJson() => jsonEncode(toMap());
   factory Bill.fromJson(String source) =>

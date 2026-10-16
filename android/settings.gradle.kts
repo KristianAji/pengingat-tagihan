@@ -24,6 +24,9 @@ plugins {
     id("com.google.gms.google-services") version("4.4.4") apply false
     // END: FlutterFire Configuration
     id("org.jetbrains.kotlin.android") version "2.2.20" apply false
+    // Diperlukan oleh widget Home Screen (Fitur 4): Jetpack Glance menulis
+    // layout widgetnya dengan Compose. Versinya harus sama dengan Kotlin.
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.20" apply false
 }
 
 include(":app")

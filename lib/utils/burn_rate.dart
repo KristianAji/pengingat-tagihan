@@ -85,11 +85,14 @@ class BurnRateCalculator {
     final today = DateTime(current.year, current.month, current.day);
     final sisaHari = payday.difference(today).inDays.clamp(1, 366);
 
-    // Tagihan wajib = jenis TAGIHAN yang belum dibayar & jatuh tempo
-    // sebelum/pada tanggal gajian berikutnya (dalam satu siklus gaji).
+    // Tagihan wajib = item bertanda wajib (bawaannya: jenis Tagihan) yang
+    // jatuh tempo sebelum/pada tanggal gajian berikutnya (satu siklus gaji).
+    //
+    // Memakai Bill.isMandatory, bukan langsung jenisnya, supaya angkanya
+    // sejalan dengan kartu Dana Darurat yang memakai penanda yang sama —
+    // kalau tidak, dua kartu bisa menyebut "tagihan wajib" dengan nilai beda.
     final totalWajib = bills
-        .where((b) =>
-            b.type == BillType.tagihan && !b.dueDate.isAfter(payday))
+        .where((b) => b.isMandatory && !b.dueDate.isAfter(payday))
         .fold<double>(0, (sum, b) => sum + b.estimatedCost);
 
     final freeCashFlow = profile.totalPemasukan - totalWajib;

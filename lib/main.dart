@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -16,8 +18,17 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await NotificationService.instance.init();
   runApp(const PengingatTagihanApp());
+
+  // Notifikasi disiapkan SETELAH frame pertama, bukan sebelumnya.
+  //
+  // init() meminta izin notifikasi, dan di Android 12 juga membuka halaman
+  // Settings izin alarm. Keduanya baru selesai setelah pengguna menjawab,
+  // jadi bila ditunggu sebelum runApp() layar aplikasi tidak pernah tampil —
+  // pengguna cuma melihat jendela kosong sambil tertahan di dialog izin.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(NotificationService.instance.init());
+  });
 }
 
 class PengingatTagihanApp extends StatefulWidget {

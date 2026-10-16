@@ -4,6 +4,8 @@ plugins {
     id("com.google.gms.google-services")
     // END: FlutterFire Configuration
     id("kotlin-android")
+    // Diperlukan oleh widget Jetpack Glance (Fitur 4).
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -12,6 +14,11 @@ android {
     namespace = "com.pengingattagihan.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    buildFeatures {
+        // Jetpack Glance menyusun tampilan widget dengan Compose.
+        compose = true
+    }
 
     compileOptions {
         // Diperlukan oleh flutter_local_notifications (Fitur 2).
@@ -51,4 +58,11 @@ flutter {
 dependencies {
     // Diperlukan oleh flutter_local_notifications (Fitur 2).
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Fitur 4: widget Home Screen. Versinya disamakan dengan yang dipakai
+    // plugin home_widget supaya tidak ada dua versi Glance di classpath.
+    implementation("androidx.glance:glance-appwidget:1.2.0")
+
+    // Tes unit sisi Android untuk hitungan hari widget (HitungHari.kt).
+    // Dijalankan dengan: cd android && ./gradlew :app:testDebugUnitTest
+    testImplementation("junit:junit:4.13.2")
 }

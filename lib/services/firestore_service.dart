@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/bill.dart';
 import '../models/history_entry.dart';
 import '../models/user_profile.dart';
+import '../utils/batching.dart';
 
 /// Akses data Firestore per-pengguna:
 ///   users/{uid}                     -> profil keuangan (burn-rate)
@@ -36,17 +37,20 @@ class FirestoreService {
         );
   }
 
-  /// Stream profil keuangan pengguna (burn-rate). Mengembalikan
-  /// [UserProfile.empty] jika dokumen/field belum ada.
+  /// Stream profil pengguna (nama panggilan + data burn-rate).
+  /// Mengembalikan [UserProfile.empty] jika dokumennya belum ada.
   Stream<UserProfile> profileStream() {
     return _userDoc.snapshots().map((snap) {
       final data = snap.data();
-      if (data == null || data['tanggalGajian'] == null) {
-        return UserProfile.empty;
-      }
+      if (data == null) return UserProfile.empty;
       return UserProfile.fromMap(data);
     });
   }
+
+  /// Menyimpan nama panggilan saja — dipakai saat pendaftaran akun baru,
+  /// supaya tidak menimpa data keuangan yang mungkin sudah ada.
+  Future<void> saveNamaPanggilan(String nama) =>
+      _userDoc.set({'namaPanggilan': nama}, SetOptions(merge: true));
 
   Future<void> saveProfile(UserProfile profile) =>
       _userDoc.set(profile.toMap(), SetOptions(merge: true));
@@ -88,12 +92,21 @@ class FirestoreService {
     await batch.commit();
   }
 
+  /// Firestore menolak satu `WriteBatch` dengan lebih dari 500 operasi.
+  static const int _batchLimit = 500;
+
+  /// Hapus seluruh riwayat, dipecah per [._batchLimit] operasi.
+  ///
+  /// Tanpa pemecahan ini, tombol "Hapus semua riwayat" gagal permanen begitu
+  /// jumlah riwayatnya lewat 500 — dan pesannya cuma "gagal menghapus".
   Future<void> clearHistory() async {
     final snap = await _history.get();
-    final batch = _db.batch();
-    for (final doc in snap.docs) {
-      batch.delete(doc.reference);
+    for (final chunk in chunked(snap.docs, _batchLimit)) {
+      final batch = _db.batch();
+      for (final doc in chunk) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 }

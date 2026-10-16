@@ -14,6 +14,7 @@ class ExpandableBillCard extends StatelessWidget {
     required this.onToggle,
     required this.onPay,
     required this.onDelete,
+    required this.onToggleMandatory,
   });
 
   final Bill bill;
@@ -21,6 +22,9 @@ class ExpandableBillCard extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onPay;
   final VoidCallback onDelete;
+
+  /// Ubah penanda kebutuhan pokok (dasar perhitungan Dana Darurat).
+  final VoidCallback onToggleMandatory;
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +128,10 @@ class ExpandableBillCard extends StatelessWidget {
         _detailRow('Ingatkan Pada', Formatters.tanggal(bill.dueDate)),
         _detailRow('Pengingat', bill.reminderDescription),
         _detailRow(
+          'Kebutuhan Pokok',
+          bill.isMandatory ? 'Dihitung' : 'Tidak dihitung',
+        ),
+        _detailRow(
           'Perulangan',
           bill.repeatLimit == null
               ? 'Tanpa batas'
@@ -134,7 +142,29 @@ class ExpandableBillCard extends StatelessWidget {
           Formatters.rupiah(bill.estimatedCost),
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 6),
+        // Switch-nya ada di dalam GestureDetector induk (yang membuka/tutup
+        // kartu); tap di sini dimenangkan anak, jadi kartunya tidak ikut
+        // terlipat — sama seperti tombol Hapus & Lunasi di bawah.
+        Row(
+          children: [
+            const Icon(Icons.shield_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Hitung di Dana Darurat',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+            Switch(
+              value: bill.isMandatory,
+              activeThumbColor: AppColors.primary,
+              onChanged: (_) => onToggleMandatory(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

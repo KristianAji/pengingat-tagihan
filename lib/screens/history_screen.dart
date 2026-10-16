@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/bill.dart';
+import '../models/history_entry.dart';
 import '../providers/bill_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
@@ -19,15 +20,19 @@ class HistoryScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Riwayat Pembayaran',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            // Expanded + ellipsis supaya judul tidak meluber di layar sempit.
+            const Expanded(
+              child: Text('Riwayat Pembayaran',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            ),
             if (history.isNotEmpty)
-              TextButton(
+              IconButton(
                 onPressed: () => _confirmClear(context),
-                child: const Text('Hapus Semua',
-                    style: TextStyle(color: AppColors.danger)),
+                icon: const Icon(Icons.delete_sweep_outlined),
+                color: AppColors.danger,
+                tooltip: 'Hapus semua riwayat',
               ),
           ],
         ),
@@ -55,7 +60,7 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _historyTile(dynamic h) {
+  Widget _historyTile(HistoryEntry h) {
     final isTagihan = h.type == BillType.tagihan;
     final color = AppColors.forType(isTagihan);
     return Container(
@@ -115,9 +120,16 @@ class HistoryScreen extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () {
-              context.read<BillProvider>().clearHistory();
+            onPressed: () async {
+              final provider = context.read<BillProvider>();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
+              if (!await provider.clearHistory()) {
+                messenger.showSnackBar(SnackBar(
+                  content: Text(provider.lastError ?? 'Gagal menghapus riwayat.'),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
             },
             child: const Text('Hapus'),
           ),

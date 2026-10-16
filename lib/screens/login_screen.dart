@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_logo.dart';
 import 'register_screen.dart';
 
 /// Halaman Login (email & password).
@@ -63,20 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    width: 78,
-                    height: 78,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.primaryDark],
-                      ),
-                      borderRadius: AppRadius.br,
-                    ),
-                    child: const Icon(Icons.notifications_active,
-                        color: Colors.white, size: 38),
-                  ),
-                  const SizedBox(height: 18),
+                  // Logo aplikasi tanpa kotak latar — maskot tampil polos.
+                  const Center(child: AppLogo()),
+                  const SizedBox(height: 14),
                   const Text(
                     'Masuk',
                     textAlign: TextAlign.center,

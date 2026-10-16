@@ -21,6 +21,9 @@ class AppColors {
   static const Color textDark = Color(0xFF212529);
   static const Color textMuted = Color(0xFF868E96);
 
+  /// Warna teks contoh/placeholder — lebih pudar dari [textMuted].
+  static const Color hint = Color(0xFFADB5BD);
+
   static Color forType(bool isTagihan) => isTagihan ? tagihan : belanja;
 }
 
@@ -65,6 +68,9 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
+        // Teks contoh ("Contoh: Stok Skincare", dll.) dibuat lebih abu-abu
+        // supaya jelas beda dengan isian asli.
+        hintStyle: const TextStyle(color: AppColors.hint),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(

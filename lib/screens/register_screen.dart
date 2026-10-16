@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
-import '../theme/app_theme.dart';
+import '../services/firestore_service.dart';
 
-/// Halaman Daftar akun baru (email & password).
+/// Halaman Daftar akun baru (nama panggilan, email & password).
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -15,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nickCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
@@ -23,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _nickCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
@@ -32,10 +34,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
+    final auth = context.read<AuthService>();
     try {
-      await context
-          .read<AuthService>()
-          .register(_emailCtrl.text, _passCtrl.text);
+      final cred = await auth.register(_emailCtrl.text, _passCtrl.text);
+
+      // Simpan nama panggilan agar Beranda menyapa dengan nama, bukan email.
+      final uid = cred.user?.uid;
+      if (uid != null) {
+        await FirestoreService(uid).saveNamaPanggilan(_nickCtrl.text.trim());
+      }
+
       if (mounted) Navigator.of(context).pop(); // kembali; AuthGate ke home
     } on FirebaseAuthException catch (e) {
       _showError(AuthService.messageFromCode(e.code));
@@ -68,12 +76,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   'Buat akun baru',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Datamu akan tersimpan aman di cloud',
-                  style: TextStyle(color: AppColors.textMuted),
-                ),
                 const SizedBox(height: 24),
+                TextFormField(
+                  controller: _nickCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Panggilan',
+                    prefixIcon: Icon(Icons.badge_outlined),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Masukkan nama panggilanmu'
+                      : null,
+                ),
+                const SizedBox(height: 14),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,

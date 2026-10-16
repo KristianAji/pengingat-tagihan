@@ -15,6 +15,14 @@ class Formatters {
     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
   ];
 
+  static const List<String> _monthsFull = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+
+  /// Nama bulan lengkap dari angka 1-12, contoh: "Oktober".
+  static String namaBulan(int month) => _monthsFull[month - 1];
+
   static String tanggal(DateTime d) =>
       '${d.day} ${_months[d.month - 1]} ${d.year}';
 

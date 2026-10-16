@@ -9,6 +9,7 @@ import '../utils/formatters.dart';
 import '../widgets/category_pie_chart.dart';
 import '../widgets/dashboard_bill_card.dart';
 import '../widgets/burn_rate_card.dart';
+import '../widgets/emergency_cash_card.dart';
 import 'add_bill_screen.dart';
 import 'bill_list_screen.dart';
 
@@ -23,10 +24,19 @@ class DashboardScreen extends StatelessWidget {
     if (provider.loading) {
       return const Center(child: CircularProgressIndicator());
     }
+    if (provider.hasError) {
+      return _errorState(provider);
+    }
 
-    final dueThisMonth = provider.dueThisMonth;
+    final dueBills = provider.dueOrOverdue;
+
+    // Sapaan: pakai nama panggilan dari pendaftaran. Kalau belum ada
+    // (akun lama), baru jatuh ke bagian depan email.
+    final nick = provider.profile.namaPanggilan;
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    final name = email.contains('@') ? email.split('@').first : 'Pengguna';
+    final name = nick.isNotEmpty
+        ? nick
+        : (email.contains('@') ? email.split('@').first : 'Pengguna');
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -44,6 +54,10 @@ class DashboardScreen extends StatelessWidget {
 
         // ── Fitur 1: Budget Burn-Rate & Predictor (kartu utama) ──
         const BurnRateCard(),
+        const SizedBox(height: 14),
+
+        // ── Fitur 3: Emergency Cash Reserve Calculator ──
+        const EmergencyCashCard(),
         const SizedBox(height: 22),
 
         // ── Section 1: total + 2 tagihan terdekat ──
@@ -53,7 +67,7 @@ class DashboardScreen extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 5, child: _totalBox(dueThisMonth.length, provider.totalThisMonth)),
+              Expanded(flex: 5, child: _totalBox(dueBills.length, provider.totalDue)),
               const SizedBox(width: 12),
               Expanded(flex: 6, child: _nearestBoxes(provider.nearestDue)),
             ],
@@ -76,7 +90,8 @@ class DashboardScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _sectionTitle('Tagihan Bulan Ini'),
+            // Expanded supaya judul yang panjang tidak meluber di layar sempit.
+            Expanded(child: _sectionTitle('Tagihan Bulan Ini & Terlewat')),
             TextButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const BillListScreen()),
@@ -86,10 +101,10 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        if (dueThisMonth.isEmpty)
+        if (dueBills.isEmpty)
           _emptyState(context)
         else
-          ...dueThisMonth.take(4).map(
+          ...dueBills.take(4).map(
                 (b) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: DashboardBillCard(
@@ -131,7 +146,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('Total Tagihan',
+          const Text('Total Pengeluaran',
               style: TextStyle(color: Colors.white70, fontSize: 13)),
           const SizedBox(height: 8),
           Text(
@@ -213,6 +228,39 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  /// Ditampilkan saat stream Firestore gagal, supaya Beranda tidak berputar
+  /// selamanya dan pengguna tetap punya jalan keluar.
+  Widget _errorState(BillProvider provider) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 56, color: AppColors.danger),
+            const SizedBox(height: 12),
+            const Text(
+              'Gagal memuat data',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              provider.error ?? 'Terjadi kesalahan.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: provider.retry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Coba lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _emptyState(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
@@ -249,9 +297,18 @@ class DashboardScreen extends StatelessWidget {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
-              context.read<BillProvider>().markAsPaid(bill.id);
+            onPressed: () async {
+              // Ditangkap sebelum await supaya tidak memakai context yang
+              // sudah di-pop saat menampilkan pesan gagal.
+              final provider = context.read<BillProvider>();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
+              if (!await provider.markAsPaid(bill.id)) {
+                messenger.showSnackBar(SnackBar(
+                  content: Text(provider.lastError ?? 'Gagal menandai lunas.'),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
             },
             child: const Text('Ya, Lunasi'),
           ),

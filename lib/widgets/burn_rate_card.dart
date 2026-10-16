@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/user_profile.dart';
@@ -7,6 +6,7 @@ import '../providers/bill_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/burn_rate.dart';
 import '../utils/formatters.dart';
+import '../utils/rupiah_input.dart';
 
 /// Fitur 1: kartu Budget Burn-Rate & Predictor untuk Dashboard.
 ///
@@ -212,7 +212,7 @@ Future<void> showBurnRateEditor(BuildContext context) async {
 
   final incomeCtrl = TextEditingController(
     text: profile.totalPemasukan > 0
-        ? profile.totalPemasukan.toStringAsFixed(0)
+        ? formatAngka(profile.totalPemasukan)
         : '',
   );
   int payday = profile.tanggalGajian;
@@ -233,13 +233,13 @@ Future<void> showBurnRateEditor(BuildContext context) async {
                 TextFormField(
                   controller: incomeCtrl,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [RupiahInputFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'Total Pemasukan / Bulan',
                     prefixText: 'Rp ',
                   ),
                   validator: (v) {
-                    final n = double.tryParse(v ?? '');
+                    final n = parseRupiah(v);
                     if (n == null || n <= 0) return 'Masukkan nominal yang valid';
                     return null;
                   },
@@ -265,13 +265,25 @@ Future<void> showBurnRateEditor(BuildContext context) async {
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
-                provider.saveProfile(UserProfile(
-                  totalPemasukan: double.parse(incomeCtrl.text),
+                // Ditangkap sebelum await supaya tidak memakai context
+                // setelah async gap.
+                final messenger = ScaffoldMessenger.of(context);
+                final navigator = Navigator.of(ctx);
+                final ok = await provider.saveProfile(UserProfile(
+                  namaPanggilan: profile.namaPanggilan,
+                  totalPemasukan: parseRupiah(incomeCtrl.text) ?? 0,
                   tanggalGajian: payday,
                 ));
-                Navigator.pop(ctx);
+                if (ok) {
+                  navigator.pop();
+                } else {
+                  messenger.showSnackBar(SnackBar(
+                    content: Text(provider.lastError ?? 'Gagal menyimpan.'),
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                }
               },
               child: const Text('Simpan'),
             ),

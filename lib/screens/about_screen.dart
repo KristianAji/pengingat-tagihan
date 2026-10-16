@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_logo.dart';
 
 /// Halaman 5: Tentang Aplikasi.
 class AboutScreen extends StatelessWidget {
@@ -18,20 +19,8 @@ class AboutScreen extends StatelessWidget {
         const Text('Tentang Aplikasi',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
         const SizedBox(height: 18),
-        Center(
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryDark],
-              ),
-              borderRadius: AppRadius.br,
-            ),
-            child: const Icon(Icons.notifications_active,
-                color: Colors.white, size: 44),
-          ),
-        ),
+        // Logo aplikasi tanpa kotak latar — samakan dengan halaman Login.
+        const Center(child: AppLogo()),
         const SizedBox(height: 14),
         const Center(
           child: Text('Pengingat Tagihan',
@@ -114,9 +103,19 @@ class AboutScreen extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () {
+            onPressed: () async {
+              // Ditangkap sebelum await; ctx milik dialog tidak dipakai lagi.
+              final auth = ctx.read<AuthService>();
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
-              ctx.read<AuthService>().logout();
+              try {
+                await auth.logout();
+              } catch (_) {
+                messenger.showSnackBar(const SnackBar(
+                  content: Text('Gagal keluar. Coba lagi.'),
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
             },
             child: const Text('Keluar'),
           ),
