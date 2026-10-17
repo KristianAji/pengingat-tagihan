@@ -48,8 +48,11 @@ void main() {
       for (final total in [0, 1, 499, 500, 501, 999, 1000, 1001, 2500]) {
         final items = List.generate(total, (i) => i);
         for (final potongan in chunked(items, 500)) {
-          expect(potongan.length, lessThanOrEqualTo(500),
-              reason: 'total $total menghasilkan potongan terlalu besar');
+          expect(
+            potongan.length,
+            lessThanOrEqualTo(500),
+            reason: 'total $total menghasilkan potongan terlalu besar',
+          );
         }
       }
     });

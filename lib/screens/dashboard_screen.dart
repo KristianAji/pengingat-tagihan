@@ -6,6 +6,7 @@ import '../models/bill.dart';
 import '../providers/bill_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
+import '../utils/profile_display.dart';
 import '../widgets/category_pie_chart.dart';
 import '../widgets/dashboard_bill_card.dart';
 import '../widgets/burn_rate_card.dart';
@@ -30,13 +31,12 @@ class DashboardScreen extends StatelessWidget {
 
     final dueBills = provider.dueOrOverdue;
 
-    // Sapaan: pakai nama panggilan dari pendaftaran. Kalau belum ada
-    // (akun lama), baru jatuh ke bagian depan email.
-    final nick = provider.profile.namaPanggilan;
-    final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    final name = nick.isNotEmpty
-        ? nick
-        : (email.contains('@') ? email.split('@').first : 'Pengguna');
+    // Sapaan: nama panggilan dari profil. Kalau belum ada (akun lama), jatuh
+    // ke bagian depan email — aturannya sama dengan halaman Profil.
+    final name = displayNameFor(
+      provider.profile.namaPanggilan,
+      FirebaseAuth.instance.currentUser?.email,
+    );
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -67,7 +67,10 @@ class DashboardScreen extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 5, child: _totalBox(dueBills.length, provider.totalDue)),
+              Expanded(
+                flex: 5,
+                child: _totalBox(dueBills.length, provider.totalDue),
+              ),
               const SizedBox(width: 12),
               Expanded(flex: 6, child: _nearestBoxes(provider.nearestDue)),
             ],
@@ -81,7 +84,9 @@ class DashboardScreen extends StatelessWidget {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: CategoryPieChart(slices: _slices(provider.spendingByCategory)),
+            child: CategoryPieChart(
+              slices: _slices(provider.spendingByCategory),
+            ),
           ),
         ),
         const SizedBox(height: 22),
@@ -93,9 +98,9 @@ class DashboardScreen extends StatelessWidget {
             // Expanded supaya judul yang panjang tidak meluber di layar sempit.
             Expanded(child: _sectionTitle('Tagihan Bulan Ini & Terlewat')),
             TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BillListScreen()),
-              ),
+              onPressed: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const BillListScreen())),
               child: const Text('Lihat semua'),
             ),
           ],
@@ -104,7 +109,9 @@ class DashboardScreen extends StatelessWidget {
         if (dueBills.isEmpty)
           _emptyState(context)
         else
-          ...dueBills.take(4).map(
+          ...dueBills
+              .take(4)
+              .map(
                 (b) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: DashboardBillCard(
@@ -127,9 +134,9 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _sectionTitle(String t) => Text(
-        t,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-      );
+    t,
+    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+  );
 
   Widget _totalBox(int count, double total) {
     return Container(
@@ -146,8 +153,10 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text('Total Pengeluaran',
-              style: TextStyle(color: Colors.white70, fontSize: 13)),
+          const Text(
+            'Total Pengeluaran',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
           const SizedBox(height: 8),
           Text(
             Formatters.rupiah(total),
@@ -158,8 +167,10 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text('$count item bulan ini',
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(
+            '$count item bulan ini',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -175,8 +186,10 @@ class DashboardScreen extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE9ECEF)),
         ),
         child: const Center(
-          child: Text('Tidak ada tenggat dekat',
-              style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          child: Text(
+            'Tidak ada tenggat dekat',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
         ),
       );
     }
@@ -209,7 +222,9 @@ class DashboardScreen extends StatelessWidget {
                       b.name,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w700),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     Text(
                       Formatters.countdown(b.daysUntilDue),
@@ -267,15 +282,21 @@ class DashboardScreen extends StatelessWidget {
       alignment: Alignment.center,
       child: Column(
         children: [
-          const Icon(Icons.inbox_outlined, size: 48, color: AppColors.textMuted),
+          const Icon(
+            Icons.inbox_outlined,
+            size: 48,
+            color: AppColors.textMuted,
+          ),
           const SizedBox(height: 8),
-          const Text('Belum ada tagihan bulan ini',
-              style: TextStyle(color: AppColors.textMuted)),
+          const Text(
+            'Belum ada tagihan bulan ini',
+            style: TextStyle(color: AppColors.textMuted),
+          ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AddBillScreen()),
-            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AddBillScreen())),
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Tambah daftar'),
           ),
@@ -304,10 +325,14 @@ class DashboardScreen extends StatelessWidget {
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
               if (!await provider.markAsPaid(bill.id)) {
-                messenger.showSnackBar(SnackBar(
-                  content: Text(provider.lastError ?? 'Gagal menandai lunas.'),
-                  behavior: SnackBarBehavior.floating,
-                ));
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      provider.lastError ?? 'Gagal menandai lunas.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             child: const Text('Ya, Lunasi'),

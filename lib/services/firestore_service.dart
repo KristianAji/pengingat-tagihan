@@ -25,13 +25,17 @@ class FirestoreService {
       _userDoc.collection('history');
 
   Stream<List<Bill>> billsStream() {
-    return _bills.orderBy('dueDate').snapshots().map(
-          (snap) => snap.docs.map((d) => Bill.fromMap(d.data())).toList(),
-        );
+    return _bills
+        .orderBy('dueDate')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => Bill.fromMap(d.data())).toList());
   }
 
   Stream<List<HistoryEntry>> historyStream() {
-    return _history.orderBy('paidAt', descending: true).snapshots().map(
+    return _history
+        .orderBy('paidAt', descending: true)
+        .snapshots()
+        .map(
           (snap) =>
               snap.docs.map((d) => HistoryEntry.fromMap(d.data())).toList(),
         );

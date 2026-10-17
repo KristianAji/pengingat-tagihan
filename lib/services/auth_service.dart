@@ -26,6 +26,33 @@ class AuthService {
     );
   }
 
+  /// Mengganti password akun.
+  ///
+  /// Firebase mewajibkan autentikasi ulang sebelum `updatePassword()` kalau
+  /// sesi sudah lama, jadi password lama diverifikasi lebih dulu dengan
+  /// `reauthenticateWithCredential`. Password lama yang salah akan memunculkan
+  /// `wrong-password`/`invalid-credential` — pesannya sudah diterjemahkan
+  /// [messageFromCode].
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'Tidak ada akun yang sedang masuk.',
+      );
+    }
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
+  }
+
   /// Keluar dari akun. Pengingat & isi widget milik akun ini dibersihkan lebih
   /// dulu supaya tagihan akun lama tidak muncul lagi setelah keluar — widget
   /// tetap terlihat di Home Screen walau aplikasinya sudah ditutup.
@@ -59,6 +86,10 @@ class AuthService {
         return 'Gagal terhubung ke jaringan.';
       case 'too-many-requests':
         return 'Terlalu banyak percobaan. Coba lagi nanti.';
+      case 'requires-recent-login':
+        return 'Sesi sudah lama. Keluar lalu masuk lagi, kemudian coba lagi.';
+      case 'no-current-user':
+        return 'Tidak ada akun yang sedang masuk.';
       default:
         return 'Terjadi kesalahan. ($code)';
     }

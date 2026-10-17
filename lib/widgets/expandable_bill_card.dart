@@ -74,10 +74,7 @@ class ExpandableBillCard extends StatelessWidget {
           children: [
             Text(
               Formatters.rupiah(bill.estimatedCost),
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
             Row(
               children: [
@@ -89,8 +86,11 @@ class ExpandableBillCard extends StatelessWidget {
                     fontSize: 13,
                   ),
                 ),
-                const Icon(Icons.expand_more,
-                    color: AppColors.primary, size: 20),
+                const Icon(
+                  Icons.expand_more,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ],
             ),
           ],
@@ -106,10 +106,7 @@ class ExpandableBillCard extends StatelessWidget {
         // Nama lebih besar, jenis pindah ke baris baru
         Text(
           bill.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 19,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 19),
         ),
         const SizedBox(height: 6),
         TypeBadge(type: bill.type),
@@ -148,8 +145,11 @@ class ExpandableBillCard extends StatelessWidget {
         // terlipat — sama seperti tombol Hapus & Lunasi di bawah.
         Row(
           children: [
-            const Icon(Icons.shield_outlined,
-                size: 18, color: AppColors.primary),
+            const Icon(
+              Icons.shield_outlined,
+              size: 18,
+              color: AppColors.primary,
+            ),
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
@@ -173,8 +173,10 @@ class ExpandableBillCard extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.danger,
                 side: const BorderSide(color: AppColors.danger),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
               icon: const Icon(Icons.delete_outline, size: 18),
               label: const Text('Hapus'),
@@ -183,8 +185,10 @@ class ExpandableBillCard extends StatelessWidget {
               onPressed: onPay,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.belanja,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
               icon: const Icon(Icons.check_circle_outline, size: 18),
               label: const Text('Lunasi'),
@@ -211,10 +215,7 @@ class ExpandableBillCard extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
         ],

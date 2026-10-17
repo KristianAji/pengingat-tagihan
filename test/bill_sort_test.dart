@@ -42,8 +42,7 @@ void main() {
     });
 
     test('turun: jatuh tempo terjauh dulu', () {
-      final hasil =
-          sortBills(bills, BillSortMode.jatuhTempo, ascending: false);
+      final hasil = sortBills(bills, BillSortMode.jatuhTempo, ascending: false);
       expect(_ids(hasil), ['c', 'b', 'a']);
     });
   });
@@ -55,14 +54,17 @@ void main() {
     ];
 
     test('naik: Tagihan sebelum Belanja', () {
-      expect(_ids(sortBills(bills, BillSortMode.jenis)), ['tagihan', 'belanja']);
+      expect(_ids(sortBills(bills, BillSortMode.jenis)), [
+        'tagihan',
+        'belanja',
+      ]);
     });
 
     test('turun: Belanja sebelum Tagihan', () {
-      expect(
-        _ids(sortBills(bills, BillSortMode.jenis, ascending: false)),
-        ['belanja', 'tagihan'],
-      );
+      expect(_ids(sortBills(bills, BillSortMode.jenis, ascending: false)), [
+        'belanja',
+        'tagihan',
+      ]);
     });
   });
 
@@ -85,10 +87,10 @@ void main() {
         _bill(id: 'ovo', paymentMethod: 'OVO'),
         _bill(id: 'dana', paymentMethod: 'Dana'),
       ];
-      expect(
-        _ids(sortBills(bills, BillSortMode.metode, ascending: false)),
-        ['ovo', 'dana'],
-      );
+      expect(_ids(sortBills(bills, BillSortMode.metode, ascending: false)), [
+        'ovo',
+        'dana',
+      ]);
     });
 
     // Metode diisi bebas oleh pengguna, jadi beda huruf besar/kecil tidak
@@ -98,10 +100,7 @@ void main() {
         _bill(id: 'kedua', name: 'Beta', paymentMethod: 'dana'),
         _bill(id: 'pertama', name: 'Alpha', paymentMethod: 'Dana'),
       ];
-      expect(_ids(sortBills(bills, BillSortMode.metode)), [
-        'pertama',
-        'kedua',
-      ]);
+      expect(_ids(sortBills(bills, BillSortMode.metode)), ['pertama', 'kedua']);
     });
   });
 
@@ -130,10 +129,10 @@ void main() {
         _bill(id: 'seminggu', repeatEvery: 1, repeatUnit: RepeatUnit.minggu),
         _bill(id: 'sebulan', repeatEvery: 1, repeatUnit: RepeatUnit.bulan),
       ];
-      expect(
-        _ids(sortBills(bills, BillSortMode.frekuensi, ascending: false)),
-        ['sebulan', 'seminggu'],
-      );
+      expect(_ids(sortBills(bills, BillSortMode.frekuensi, ascending: false)), [
+        'sebulan',
+        'seminggu',
+      ]);
     });
 
     test('perulangan sama: pengingat paling awal (H-7) dulu', () {

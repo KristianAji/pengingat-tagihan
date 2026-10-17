@@ -38,9 +38,7 @@ List<Bill> sortBills(
   bool ascending = true,
 }) {
   final list = bills.toList();
-  list.sort(
-    (a, b) => ascending ? _compare(a, b, mode) : -_compare(a, b, mode),
-  );
+  list.sort((a, b) => ascending ? _compare(a, b, mode) : -_compare(a, b, mode));
   return list;
 }
 
@@ -65,8 +63,9 @@ int _compare(Bill a, Bill b, BillSortMode mode) {
   final primary = switch (mode) {
     BillSortMode.jatuhTempo => a.dueDate.compareTo(b.dueDate),
     BillSortMode.jenis => a.type.index.compareTo(b.type.index),
-    BillSortMode.metode =>
-      _norm(a.paymentMethod).compareTo(_norm(b.paymentMethod)),
+    BillSortMode.metode => _norm(
+      a.paymentMethod,
+    ).compareTo(_norm(b.paymentMethod)),
     BillSortMode.frekuensi => _compareFrekuensi(a, b),
   };
   if (primary != 0) return primary;

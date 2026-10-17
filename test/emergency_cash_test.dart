@@ -55,8 +55,8 @@ void main() {
       final map = _bill(id: 'a').toMap()..remove('isMandatory');
       expect(Bill.fromMap(map).isMandatory, isTrue);
 
-      final mapBelanja =
-          _bill(id: 'b', type: BillType.belanja).toMap()..remove('isMandatory');
+      final mapBelanja = _bill(id: 'b', type: BillType.belanja).toMap()
+        ..remove('isMandatory');
       expect(Bill.fromMap(mapBelanja).isMandatory, isFalse);
     });
 
@@ -70,29 +70,29 @@ void main() {
   group('monthlyCost — normalisasi perulangan ke bulanan', () {
     test('bulanan apa adanya', () {
       expect(
-        EmergencyCashCalculator.monthlyCost(_bill(id: 'a', estimatedCost: 500000)),
+        EmergencyCashCalculator.monthlyCost(
+          _bill(id: 'a', estimatedCost: 500000),
+        ),
         500000,
       );
     });
 
     test('tahunan dibagi 12', () {
-      final pajak = _bill(
-        id: 'a',
-        repeatEvery: 12,
-        estimatedCost: 1200000,
-      );
+      final pajak = _bill(id: 'a', repeatEvery: 12, estimatedCost: 1200000);
       expect(EmergencyCashCalculator.monthlyCost(pajak), closeTo(100000, 0.01));
     });
 
     test('3 & 6 bulanan dibagi sesuai periodenya', () {
       expect(
         EmergencyCashCalculator.monthlyCost(
-            _bill(id: 'a', repeatEvery: 3, estimatedCost: 900000)),
+          _bill(id: 'a', repeatEvery: 3, estimatedCost: 900000),
+        ),
         closeTo(300000, 0.01),
       );
       expect(
         EmergencyCashCalculator.monthlyCost(
-            _bill(id: 'b', repeatEvery: 6, estimatedCost: 600000)),
+          _bill(id: 'b', repeatEvery: 6, estimatedCost: 600000),
+        ),
         closeTo(100000, 0.01),
       );
     });
@@ -191,10 +191,9 @@ void main() {
       expect(kosong.itemCount, 0);
       expect(kosong.isEmpty, isTrue);
 
-      final tanpaWajib = EmergencyCashCalculator.calculate(
-        [_bill(id: 'a', type: BillType.belanja)],
-        6,
-      );
+      final tanpaWajib = EmergencyCashCalculator.calculate([
+        _bill(id: 'a', type: BillType.belanja),
+      ], 6);
       expect(tanpaWajib.isEmpty, isTrue);
     });
 

@@ -10,13 +10,13 @@
 //     memotongnya, lalu memusatkannya kembali.
 //   - Android 8+ memasking icon (lingkaran/squircle); hanya bagian tengah yang
 //     dijamin terlihat. Karena itu lapisan depan icon adaptif dibuat terpisah:
-//     subjeknya dikecilkan ke dalam kotak tengah 66%, bukan memenuhi bidang.
+//     subjeknya dikecilkan ke dalam kotak tengah 72%, bukan memenuhi bidang.
 //
-// Latar sengaja TIDAK dibuat transparan: latar gambar sumber putih dan kertas
-// tagihannya juga putih, jadi kalau putihnya dibuang, kertas tagihannya ikut
-// hilang. Latar adaptif karena itu disetel putih juga supaya menyatu
-// (lihat flutter_launcher_icons di pubspec.yaml).
+// Latar dijadikan bening dengan flood fill dari tepi potongan: hanya putih
+// yang tersambung ke luar yang dibuang. Kertas tagihan yang juga putih tetap
+// utuh karena dikelilingi garis gelap, jadi tidak ikut hilang.
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
@@ -24,14 +24,20 @@ import 'package:image/image.dart' as img;
 const int _kanvas = 1024;
 
 /// Bagian kanvas yang ditempati sisi terpanjang subjek.
-const double _rasioIconLama = 0.82;
-const double _rasioAdaptif = 0.66;
+/// Diperbesar 2026-10-17: 0,82 → 0,88 (icon lama) dan 0,66 → 0,72 (adaptif).
+const double _rasioIconLama = 0.88;
+const double _rasioAdaptif = 0.72;
 
 /// Ditambahkan di sekeliling subjek supaya tidak menempel tepi potongan.
 const double _margin = 0.06;
 
 /// Piksel dianggap latar bila ketiga kanalnya di atas ambang ini.
 const int _ambangPutih = 243;
+
+/// Ambang untuk membuang latar. Latar JPEG di gambar sumber berwarna
+/// sekitar 252, sedangkan badan kucing paling terang berwarna 254/244/233 —
+/// kanal birunya jauh di bawah ambang, jadi tidak ikut terbuang.
+const int _ambangLatar = 243;
 
 const String _sumberDefault = r'C:\Semester 5\Mobile\Icon-apliksi-3.jpeg';
 const String _tujuanDefault = 'assets/icon';
@@ -64,26 +70,30 @@ void main(List<String> args) {
   final lebar = (kotak.lebar + margin * 2).clamp(1, asal.width - x);
   final tinggi = (kotak.tinggi + margin * 2).clamp(1, asal.height - y);
 
-  final potongan = img.copyCrop(asal, x: x, y: y, width: lebar, height: tinggi);
+  // JPEG tidak punya kanal alpha; konversi dulu supaya flood fill bisa
+  // benar-benar menulis alpha 0 (tanpa ini latar jadi hitam pekat).
+  final potongan = img
+      .copyCrop(asal, x: x, y: y, width: lebar, height: tinggi)
+      .convert(numChannels: 4);
+  final dibuang = _buangLatar(potongan);
+  stdout.writeln('Latar dibuang: $dibuang piksel putih yang tersambung ke tepi.');
 
   Directory(tujuan).createSync(recursive: true);
 
-  // Icon lama (Android < 8, juga dipakai di beberapa tempat lain): latar putih.
+  // Icon lama (Android < 8, juga dipakai di beberapa tempat lain): latar bening.
   _tulis(
     nama: 'app_icon.png',
     tujuan: tujuan,
     potongan: potongan,
     rasio: _rasioIconLama,
-    transparan: false,
   );
 
-  // Lapisan depan icon adaptif: subjek di dalam kotak tengah 66%, latar bening.
+  // Lapisan depan icon adaptif: subjek di dalam kotak tengah 72%, latar bening.
   _tulis(
     nama: 'app_icon_foreground.png',
     tujuan: tujuan,
     potongan: potongan,
     rasio: _rasioAdaptif,
-    transparan: true,
   );
 
   stdout.writeln('Subjek terdeteksi: ${kotak.lebar}x${kotak.tinggi} px '
@@ -95,11 +105,11 @@ void _tulis({
   required String tujuan,
   required img.Image potongan,
   required double rasio,
-  required bool transparan,
 }) {
-  final sisiTerpanjang = potongan.width > potongan.height
-      ? potongan.width
-      : potongan.height;
+  // Skala dihitung dari SUBJEK yang tersisa setelah latar dibuang, bukan dari
+  // kotak potongan (yang masih membawa margin 6%). Dengan begitu angka 72% /
+  // 88% benar-benar berarti ukuran maskot yang terlihat.
+  final sisiTerpanjang = _sisiSubjek(potongan);
   final skala = _kanvas * rasio / sisiTerpanjang;
 
   final gambar = img.copyResize(
@@ -114,9 +124,6 @@ void _tulis({
     height: _kanvas,
     numChannels: 4,
   );
-  if (!transparan) {
-    img.fill(kanvas, color: img.ColorRgba8(255, 255, 255, 255));
-  }
 
   img.compositeImage(
     kanvas,
@@ -133,14 +140,82 @@ void _tulis({
   // dari tampilan gambar, karena bening dan putih sama-sama terlihat putih.
   final kembali = img.decodePng(keluar.readAsBytesSync())!;
   final sudut = kembali.getPixel(0, 0);
-  final ketebalanLatar = transparan
-      ? 'alpha ${sudut.a.toInt()} (bening)'
-      : 'RGB ${sudut.r.toInt()},${sudut.g.toInt()},${sudut.b.toInt()} '
-          'alpha ${sudut.a.toInt()}';
+  final ketebalanLatar = 'alpha ${sudut.a.toInt()} (bening)';
 
   stdout.writeln('  $nama  ${_kanvas}x$_kanvas  '
       '(skala ${skala.toStringAsFixed(3)}, ${keluar.lengthSync() ~/ 1024} KB) '
       '| sudut: $ketebalanLatar');
+}
+
+/// Sisi terpanjang piksel subjek (yang tidak bening) pada [gambar].
+int _sisiSubjek(img.Image gambar) {
+  var kiri = gambar.width, atas = gambar.height, kanan = -1, bawah = -1;
+  for (var y = 0; y < gambar.height; y++) {
+    for (var x = 0; x < gambar.width; x++) {
+      if (gambar.getPixel(x, y).a < 8) continue;
+      if (x < kiri) kiri = x;
+      if (x > kanan) kanan = x;
+      if (y < atas) atas = y;
+      if (y > bawah) bawah = y;
+    }
+  }
+  if (kanan < 0) return gambar.width;
+  final lebar = kanan - kiri + 1;
+  final tinggi = bawah - atas + 1;
+  return lebar > tinggi ? lebar : tinggi;
+}
+
+/// Buang latar putih yang tersambung ke tepi [gambar] (flood fill).
+///
+/// Hanya putih yang bisa dicapai dari tepi yang dijadikan bening. Bagian
+/// putih yang terkunci garis gelap — misalnya kertas tagihan — tidak
+/// tersentuh, jadi tidak perlu memotong manual.
+/// Mengembalikan jumlah piksel yang dibuang.
+int _buangLatar(img.Image gambar) {
+  final lebar = gambar.width;
+  final tinggi = gambar.height;
+  final dikunjungi = Uint8List(lebar * tinggi);
+  final antrean = <int>[];
+
+  bool putih(int x, int y) {
+    final p = gambar.getPixel(x, y);
+    return p.a > 0 &&
+        p.r >= _ambangLatar &&
+        p.g >= _ambangLatar &&
+        p.b >= _ambangLatar;
+  }
+
+  void periksa(int x, int y) {
+    if (x < 0 || y < 0 || x >= lebar || y >= tinggi) return;
+    final i = y * lebar + x;
+    if (dikunjungi[i] != 0) return;
+    dikunjungi[i] = 1;
+    if (putih(x, y)) antrean.add(i);
+  }
+
+  // Latar selalu menyentuh tepi karena potongan diberi margin di sekeliling
+  // subjek, jadi semua piksel tepi aman dijadikan titik awal.
+  for (var x = 0; x < lebar; x++) {
+    periksa(x, 0);
+    periksa(x, tinggi - 1);
+  }
+  for (var y = 0; y < tinggi; y++) {
+    periksa(0, y);
+    periksa(lebar - 1, y);
+  }
+
+  var kepala = 0;
+  while (kepala < antrean.length) {
+    final i = antrean[kepala++];
+    final x = i % lebar;
+    final y = i ~/ lebar;
+    gambar.setPixelRgba(x, y, 0, 0, 0, 0);
+    periksa(x - 1, y);
+    periksa(x + 1, y);
+    periksa(x, y - 1);
+    periksa(x, y + 1);
+  }
+  return antrean.length;
 }
 
 /// Batas piksel yang bukan latar putih.

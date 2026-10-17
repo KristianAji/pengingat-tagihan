@@ -15,9 +15,7 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const PengingatTagihanApp());
 
   // Notifikasi disiapkan SETELAH frame pertama, bukan sebelumnya.
@@ -54,12 +52,10 @@ class _PengingatTagihanAppState extends State<PengingatTagihanApp> {
           final user = snapshot.data;
 
           final Widget home = waiting
-              ? const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                )
+              ? const Scaffold(body: Center(child: CircularProgressIndicator()))
               : user == null
-                  ? const LoginScreen()
-                  : const HomeShell();
+              ? const LoginScreen()
+              : const HomeShell();
 
           final app = MaterialApp(
             title: 'Pengingat Tagihan',

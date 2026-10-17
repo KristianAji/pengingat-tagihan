@@ -54,8 +54,10 @@ class RupiahInputFormatter extends TextInputFormatter {
     final grouped = _group(digits);
 
     final caretInRaw = newValue.selection.baseOffset.clamp(0, raw.length);
-    final digitsBeforeCaret =
-        raw.substring(0, caretInRaw).replaceAll(RegExp(r'[^0-9]'), '').length;
+    final digitsBeforeCaret = raw
+        .substring(0, caretInRaw)
+        .replaceAll(RegExp(r'[^0-9]'), '')
+        .length;
 
     var caret = grouped.length;
     var seen = 0;

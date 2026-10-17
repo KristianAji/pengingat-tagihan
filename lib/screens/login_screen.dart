@@ -33,9 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await context
-          .read<AuthService>()
-          .login(_emailCtrl.text, _passCtrl.text);
+      await context.read<AuthService>().login(_emailCtrl.text, _passCtrl.text);
       // AuthGate otomatis pindah ke home setelah login sukses.
     } on FirebaseAuthException catch (e) {
       _showError(AuthService.messageFromCode(e.code));
@@ -70,8 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'Masuk',
                     textAlign: TextAlign.center,
-                    style:
-                        TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
                   const Text(
@@ -99,9 +96,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscure
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(
+                          _obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
@@ -117,7 +116,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Masuk'),
                   ),
@@ -125,15 +126,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Belum punya akun?',
-                          style: TextStyle(color: AppColors.textMuted)),
+                      const Text(
+                        'Belum punya akun?',
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
                       TextButton(
                         onPressed: _loading
                             ? null
                             : () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) => const RegisterScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterScreen(),
                                 ),
+                              ),
                         child: const Text('Daftar'),
                       ),
                     ],

@@ -21,9 +21,9 @@ Future<void> _loadRealFont() async {
 }
 
 Widget _wrap(Widget child) => MaterialApp(
-      theme: AppTheme.light,
-      home: Scaffold(body: child),
-    );
+  theme: AppTheme.light,
+  home: Scaffold(body: child),
+);
 
 EmergencyCashResult _result({
   int months = 6,
@@ -47,29 +47,33 @@ void main() {
     // sempit dengan skala huruf besar.
     for (final width in [320.0, 360.0, 393.0]) {
       for (final scale in [1.0, 1.15, 1.3]) {
-        testWidgets('tidak meluber di ${width.toInt()}dp skala $scale',
-            (tester) async {
+        testWidgets('tidak meluber di ${width.toInt()}dp skala $scale', (
+          tester,
+        ) async {
           tester.view.physicalSize = Size(width * 3, 900 * 3);
           tester.view.devicePixelRatio = 3.0;
           addTearDown(tester.view.reset);
 
-          await tester.pumpWidget(_wrap(
-            Builder(
-              builder: (context) => MediaQuery(
-                data: MediaQuery.of(context)
-                    .copyWith(textScaler: TextScaler.linear(scale)),
-                child: Padding(
-                  // Padding yang sama dengan ListView halaman Beranda.
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: EmergencyCashCardView(
-                    result: _result(months: 12, monthly: 9850000),
-                    selectedMonths: 12,
-                    onSelectMonths: (_) {},
+          await tester.pumpWidget(
+            _wrap(
+              Builder(
+                builder: (context) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(scale)),
+                  child: Padding(
+                    // Padding yang sama dengan ListView halaman Beranda.
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: EmergencyCashCardView(
+                      result: _result(months: 12, monthly: 9850000),
+                      selectedMonths: 12,
+                      onSelectMonths: (_) {},
+                    ),
                   ),
                 ),
               ),
             ),
-          ));
+          );
 
           // Overflow dilaporkan Flutter sebagai exception saat paint.
           expect(tester.takeException(), isNull);
@@ -79,13 +83,18 @@ void main() {
   });
 
   group('EmergencyCashCardView — isi', () {
-    testWidgets('menampilkan nominal, keterangan, dan chip rentang',
-        (tester) async {
-      await tester.pumpWidget(_wrap(EmergencyCashCardView(
-        result: _result(months: 6, monthly: 2450000, itemCount: 3),
-        selectedMonths: 6,
-        onSelectMonths: (_) {},
-      )));
+    testWidgets('menampilkan nominal, keterangan, dan chip rentang', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          EmergencyCashCardView(
+            result: _result(months: 6, monthly: 2450000, itemCount: 3),
+            selectedMonths: 6,
+            onSelectMonths: (_) {},
+          ),
+        ),
+      );
 
       expect(find.text('Dana Darurat'), findsOneWidget);
       expect(find.text('Rp 14.700.000'), findsOneWidget);
@@ -97,24 +106,33 @@ void main() {
     });
 
     testWidgets('menjelaskan bila belum ada item wajib', (tester) async {
-      await tester.pumpWidget(_wrap(EmergencyCashCardView(
-        result: _result(itemCount: 0),
-        selectedMonths: 6,
-        onSelectMonths: (_) {},
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          EmergencyCashCardView(
+            result: _result(itemCount: 0),
+            selectedMonths: 6,
+            onSelectMonths: (_) {},
+          ),
+        ),
+      );
 
       expect(find.text('Rp 0'), findsOneWidget);
       expect(find.textContaining('Belum ada item wajib'), findsOneWidget);
     });
 
-    testWidgets('ketuk chip memanggil onSelectMonths dengan rentang itu',
-        (tester) async {
+    testWidgets('ketuk chip memanggil onSelectMonths dengan rentang itu', (
+      tester,
+    ) async {
       int? dipilih;
-      await tester.pumpWidget(_wrap(EmergencyCashCardView(
-        result: _result(),
-        selectedMonths: 6,
-        onSelectMonths: (m) => dipilih = m,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          EmergencyCashCardView(
+            result: _result(),
+            selectedMonths: 6,
+            onSelectMonths: (m) => dipilih = m,
+          ),
+        ),
+      );
 
       await tester.tap(find.text('12 bulan'));
       expect(dipilih, 12);

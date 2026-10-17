@@ -32,11 +32,7 @@ class TypeBadge extends StatelessWidget {
 
 /// Komponen "entri daftar dashboard" — kotak dalam kotak.
 class DashboardBillCard extends StatelessWidget {
-  const DashboardBillCard({
-    super.key,
-    required this.bill,
-    required this.onPay,
-  });
+  const DashboardBillCard({super.key, required this.bill, required this.onPay});
 
   final Bill bill;
   final VoidCallback onPay;
@@ -78,8 +74,10 @@ class DashboardBillCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: (urgent ? AppColors.danger : AppColors.textMuted)
                       .withValues(alpha: 0.12),
@@ -101,10 +99,14 @@ class DashboardBillCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _iconText(Icons.account_balance_wallet_outlined,
-                  bill.paymentMethod),
-              _iconText(Icons.notifications_active_outlined,
-                  bill.repeatDescription),
+              _iconText(
+                Icons.account_balance_wallet_outlined,
+                bill.paymentMethod,
+              ),
+              _iconText(
+                Icons.notifications_active_outlined,
+                bill.repeatDescription,
+              ),
             ],
           ),
           const SizedBox(height: 12),

@@ -96,7 +96,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
       return;
     }
 
-    final every = _useCustomRepeat ? _customEvery : _presets[_presetIndex].every;
+    final every = _useCustomRepeat
+        ? _customEvery
+        : _presets[_presetIndex].every;
     final unit = _useCustomRepeat ? _customUnit : _presets[_presetIndex].unit;
     final limit = _hasLimit ? int.tryParse(_limitCtrl.text) : null;
     final offsets = _offsets.toList()..sort((a, b) => b.compareTo(a));
@@ -129,18 +131,22 @@ class _AddBillScreenState extends State<AddBillScreen> {
 
     if (!ok) {
       // Form sengaja dibiarkan terbuka supaya isian tidak hilang saat gagal.
-      messenger.showSnackBar(SnackBar(
-        content: Text(provider.lastError ?? 'Gagal menyimpan. Coba lagi.'),
-        behavior: SnackBarBehavior.floating,
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(provider.lastError ?? 'Gagal menyimpan. Coba lagi.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
     navigator.pop();
-    messenger.showSnackBar(SnackBar(
-      content: Text('"${bill.name}" berhasil ditambahkan'),
-      behavior: SnackBarBehavior.floating,
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('"${bill.name}" berhasil ditambahkan'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _showSnack(String msg) {
@@ -153,9 +159,10 @@ class _AddBillScreenState extends State<AddBillScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Daftar Baru',
-            style: TextStyle(fontWeight: FontWeight.w800)),
-        backgroundColor: AppColors.surface,
+        title: const Text(
+          'Tambah Daftar Baru',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -233,7 +240,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.check),
                 label: Text(_saving ? 'Menyimpan...' : 'Simpan Daftar'),
@@ -246,21 +255,23 @@ class _AddBillScreenState extends State<AddBillScreen> {
   }
 
   Widget _label(String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(t,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      t,
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+    ),
+  );
 
   Widget _charCounter() => Align(
-        alignment: Alignment.centerRight,
-        child: AnimatedBuilder(
-          animation: _nameCtrl,
-          builder: (context, _) => Text(
-            '${_nameCtrl.text.length}/$kMaxNameLength',
-            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-          ),
-        ),
-      );
+    alignment: Alignment.centerRight,
+    child: AnimatedBuilder(
+      animation: _nameCtrl,
+      builder: (context, _) => Text(
+        '${_nameCtrl.text.length}/$kMaxNameLength',
+        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+      ),
+    ),
+  );
 
   Widget _typeSelector() {
     return Row(
@@ -283,7 +294,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected ? color.withValues(alpha: 0.12) : AppColors.card,
+                  color: selected
+                      ? color.withValues(alpha: 0.12)
+                      : AppColors.card,
                   borderRadius: AppRadius.br,
                   border: Border.all(
                     color: selected ? color : const Color(0xFFE9ECEF),
@@ -320,8 +333,10 @@ class _AddBillScreenState extends State<AddBillScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Masuk Kebutuhan Pokok',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  'Masuk Kebutuhan Pokok',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
                 Text(
                   'Dihitung sebagai tagihan wajib di kartu Dana Darurat.',
                   style: TextStyle(fontSize: 11, color: AppColors.textMuted),
@@ -354,11 +369,17 @@ class _AddBillScreenState extends State<AddBillScreen> {
         children: [
           Row(
             children: [
-              _repeatTab('Pilih Preset', !_useCustomRepeat,
-                  () => setState(() => _useCustomRepeat = false)),
+              _repeatTab(
+                'Pilih Preset',
+                !_useCustomRepeat,
+                () => setState(() => _useCustomRepeat = false),
+              ),
               const SizedBox(width: 8),
-              _repeatTab('Atur Sendiri', _useCustomRepeat,
-                  () => setState(() => _useCustomRepeat = true)),
+              _repeatTab(
+                'Atur Sendiri',
+                _useCustomRepeat,
+                () => setState(() => _useCustomRepeat = true),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -403,8 +424,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
           child: DropdownButtonFormField<int>(
             initialValue: _customEvery,
             isExpanded: true,
-            decoration: const InputDecoration(contentPadding:
-                EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
             items: List.generate(max, (i) => i + 1)
                 .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
                 .toList(),
@@ -416,8 +438,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
           child: DropdownButtonFormField<RepeatUnit>(
             initialValue: _customUnit,
             isExpanded: true,
-            decoration: const InputDecoration(contentPadding:
-                EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
             items: RepeatUnit.values
                 .map((u) => DropdownMenuItem(value: u, child: Text(u.label)))
                 .toList(),
@@ -473,12 +496,16 @@ class _AddBillScreenState extends State<AddBillScreen> {
                 isExpanded: true,
                 hint: const Text('Pilih tanggal'),
                 decoration: const InputDecoration(
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
                 items: List.generate(31, (i) => i + 1)
-                    .map((d) => DropdownMenuItem(
-                        value: d, child: Text('Tanggal $d')))
+                    .map(
+                      (d) =>
+                          DropdownMenuItem(value: d, child: Text('Tanggal $d')),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _reminderDay = v),
               ),
@@ -490,12 +517,18 @@ class _AddBillScreenState extends State<AddBillScreen> {
                 isExpanded: true,
                 hint: const Text('Pilih bulan'),
                 decoration: const InputDecoration(
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
                 items: List.generate(12, (i) => i + 1)
-                    .map((m) => DropdownMenuItem(
-                        value: m, child: Text(Formatters.namaBulan(m))))
+                    .map(
+                      (m) => DropdownMenuItem(
+                        value: m,
+                        child: Text(Formatters.namaBulan(m)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setState(() => _reminderMonth = v),
               ),
@@ -545,7 +578,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
                 Text(
                   'Pengingat pertama: ${Formatters.tanggal(due)}',
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textMuted),
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 if (day > 28) ...[
                   const SizedBox(height: 2),
@@ -570,8 +605,8 @@ class _AddBillScreenState extends State<AddBillScreen> {
       children: [7, 3, 1].map((d) {
         final selected = _offsets.contains(d);
         return GestureDetector(
-          onTap: () => setState(
-              () => selected ? _offsets.remove(d) : _offsets.add(d)),
+          onTap: () =>
+              setState(() => selected ? _offsets.remove(d) : _offsets.add(d)),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -610,12 +645,16 @@ class _AddBillScreenState extends State<AddBillScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Batas Perulangan',
-                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      'Batas Perulangan',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     Text(
                       'Contoh: cicilan motor 12x, terhapus saat lunas semua',
                       style: TextStyle(
-                          fontSize: 11, color: AppColors.textMuted),
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),

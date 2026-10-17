@@ -23,9 +23,11 @@ class HistoryScreen extends StatelessWidget {
           children: [
             // Expanded + ellipsis supaya judul tidak meluber di layar sempit.
             const Expanded(
-              child: Text('Riwayat Pembayaran',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              child: Text(
+                'Riwayat Pembayaran',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
             ),
             if (history.isNotEmpty)
               IconButton(
@@ -45,17 +47,21 @@ class HistoryScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.history, size: 56, color: AppColors.textMuted),
                   SizedBox(height: 10),
-                  Text('Belum ada riwayat pembayaran',
-                      style: TextStyle(color: AppColors.textMuted)),
+                  Text(
+                    'Belum ada riwayat pembayaran',
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
                 ],
               ),
             ),
           )
         else
-          ...history.map((h) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _historyTile(h),
-              )),
+          ...history.map(
+            (h) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _historyTile(h),
+            ),
+          ),
       ],
     );
   }
@@ -86,13 +92,17 @@ class HistoryScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(h.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(
+                  h.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '${h.paymentMethod} • ${Formatters.tanggalWaktu(h.paidAt)}',
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textMuted),
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -112,7 +122,9 @@ class HistoryScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         shape: AppRadius.shape,
         title: const Text('Hapus Semua Riwayat?'),
-        content: const Text('Seluruh riwayat pembayaran akan dihapus permanen.'),
+        content: const Text(
+          'Seluruh riwayat pembayaran akan dihapus permanen.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -125,10 +137,14 @@ class HistoryScreen extends StatelessWidget {
               final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(ctx);
               if (!await provider.clearHistory()) {
-                messenger.showSnackBar(SnackBar(
-                  content: Text(provider.lastError ?? 'Gagal menghapus riwayat.'),
-                  behavior: SnackBarBehavior.floating,
-                ));
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      provider.lastError ?? 'Gagal menghapus riwayat.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             child: const Text('Hapus'),

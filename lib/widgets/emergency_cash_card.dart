@@ -59,8 +59,11 @@ class EmergencyCashCardView extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.shield_outlined,
-                  color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.shield_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
@@ -104,11 +107,13 @@ class EmergencyCashCardView extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: EmergencyCashCalculator.pilihanBulan
-                .map((m) => AppChoiceChip(
-                      label: '$m bulan',
-                      selected: m == selectedMonths,
-                      onTap: () => onSelectMonths(m),
-                    ))
+                .map(
+                  (m) => AppChoiceChip(
+                    label: '$m bulan',
+                    selected: m == selectedMonths,
+                    onTap: () => onSelectMonths(m),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 10),
@@ -125,7 +130,7 @@ class EmergencyCashCardView extends StatelessWidget {
   /// Keterangan di bawah nominal.
   String _caption(EmergencyCashResult r) {
     if (r.isEmpty) {
-      return 'Belum ada item wajib — tandai kebutuhan pokokmu lebih dulu.';
+      return 'Belum ada item wajib. Tandai kebutuhan pokokmu lebih dulu.';
     }
     return '≈ ${Formatters.rupiah(r.monthlyMandatory)} / bulan '
         'dari ${r.itemCount} item wajib';

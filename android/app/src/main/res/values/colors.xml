@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <color name="ic_launcher_background">#00000000</color>
+    <!-- Samakan dengan AppColors.surface (#F4F6FB) supaya splash menyatu
+         dengan latar layar pertama Flutter. -->
+    <color name="splash_background">#F4F6FB</color>
 </resources>

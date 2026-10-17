@@ -2,7 +2,7 @@
 // Bening dan putih sama-sama terlihat putih di penampil gambar, jadi harus
 // dibaca dari pikselnya, bukan dinilai dari mata. Batas subjek perlu diketahui
 // karena lapisan adaptif punya padding bening bawaan (subjek sengaja
-// dikecilkan ke kotak tengah 66% oleh tool/buat_icon.dart).
+// dikecilkan ke kotak tengah 72% oleh tool/buat_icon.dart).
 import 'dart:io';
 
 import 'package:image/image.dart' as img;
@@ -33,5 +33,41 @@ void main() {
         '| sisi terpanjang = ${(sisi / gambar.width * 100).toStringAsFixed(1)}% '
         'kanvas | rasio kanvas/subjek = '
         '${(gambar.width / sisi).toStringAsFixed(4)}');
+
+    // Periksa sisa piksel opaque di tepi kotak alfanya. Kalau latar benar-benar
+    // bersih, tepinya tidak boleh menyisakan bercak putih/abu.
+    var tepiOpaque = 0;
+    var tepiTerang = 0;
+    var contoh = '';
+    for (var x = kiri; x <= kanan; x++) {
+      for (final y in [atas, bawah]) {
+        final p = gambar.getPixel(x, y);
+        if (p.a <= 8) continue;
+        tepiOpaque++;
+        if (p.r >= 235 && p.g >= 235 && p.b >= 235) {
+          tepiTerang++;
+          if (contoh.isEmpty) {
+            contoh = '($x,$y)=rgba(${p.r.toInt()},${p.g.toInt()},'
+                '${p.b.toInt()},${p.a.toInt()})';
+          }
+        }
+      }
+    }
+    for (var y = atas; y <= bawah; y++) {
+      for (final x in [kiri, kanan]) {
+        final p = gambar.getPixel(x, y);
+        if (p.a <= 8) continue;
+        tepiOpaque++;
+        if (p.r >= 235 && p.g >= 235 && p.b >= 235) {
+          tepiTerang++;
+          if (contoh.isEmpty) {
+            contoh = '($x,$y)=rgba(${p.r.toInt()},${p.g.toInt()},'
+                '${p.b.toInt()},${p.a.toInt()})';
+          }
+        }
+      }
+    }
+    stdout.writeln('   tepi bbox: opaque=$tepiOpaque, terang=$tepiTerang'
+        '${contoh.isEmpty ? '' : ' | contoh $contoh'}');
   }
 }

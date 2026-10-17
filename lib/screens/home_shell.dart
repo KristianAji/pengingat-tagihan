@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import 'about_screen.dart';
 import 'add_bill_screen.dart';
 import 'bill_list_screen.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
+import 'profile_screen.dart';
 
 /// Kerangka utama + Navigation Bar (5 halaman).
 /// Tombol tengah "Tambah" dibuat sedikit naik & lebih besar agar menonjol.
@@ -24,14 +24,14 @@ class _HomeShellState extends State<HomeShell> {
     BillListScreen(),
     SizedBox.shrink(), // slot tombol tambah (dibuka sebagai layar penuh)
     HistoryScreen(),
-    AboutScreen(),
+    ProfileScreen(),
   ];
 
   void _onTap(int i) {
     if (i == 2) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AddBillScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AddBillScreen()));
       return;
     }
     setState(() => _index = i);
@@ -58,7 +58,11 @@ class _NavBar extends StatelessWidget {
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, -2)),
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 12,
+            offset: Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -70,10 +74,15 @@ class _NavBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _item(0, Icons.dashboard_outlined, Icons.dashboard, 'Beranda'),
-              _item(1, Icons.receipt_long_outlined, Icons.receipt_long, 'Daftar'),
+              _item(
+                1,
+                Icons.receipt_long_outlined,
+                Icons.receipt_long,
+                'Daftar',
+              ),
               _addButton(),
               _item(3, Icons.history_outlined, Icons.history, 'Riwayat'),
-              _item(4, Icons.info_outline, Icons.info, 'Tentang'),
+              _item(4, Icons.person_outline, Icons.person, 'Profil'),
             ],
           ),
         ),

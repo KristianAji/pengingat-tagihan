@@ -77,8 +77,11 @@ class BurnRateCalculator {
     return DateTime(year, month, safeDay);
   }
 
-  static BurnRateResult calculate(UserProfile profile, List<Bill> bills,
-      {DateTime? now}) {
+  static BurnRateResult calculate(
+    UserProfile profile,
+    List<Bill> bills, {
+    DateTime? now,
+  }) {
     final current = now ?? DateTime.now();
     final payday = nextPayday(profile.tanggalGajian, current);
 

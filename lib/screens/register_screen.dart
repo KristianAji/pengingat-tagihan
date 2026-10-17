@@ -108,9 +108,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscure
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined),
+                      icon: Icon(
+                        _obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
@@ -126,9 +128,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: 'Konfirmasi Password',
                     prefixIcon: Icon(Icons.lock_outline),
                   ),
-                  validator: (v) => (v != _passCtrl.text)
-                      ? 'Password tidak sama'
-                      : null,
+                  validator: (v) =>
+                      (v != _passCtrl.text) ? 'Password tidak sama' : null,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -138,7 +139,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Daftar'),
                 ),

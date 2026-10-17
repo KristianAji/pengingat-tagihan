@@ -30,8 +30,10 @@ class SortChipBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Urutkan:',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+        const Text(
+          'Urutkan:',
+          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

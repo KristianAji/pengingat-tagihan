@@ -16,6 +16,14 @@ class AppColors {
   static const Color belanja = Color(0xFF12B886);
   static const Color danger = Color(0xFFFA5252);
   static const Color warning = Color(0xFFF08C00);
+
+  /// Latar layar di dalam aplikasi — putih bersih (permintaan pengguna,
+  /// 2026-10-17). Splash sengaja TETAP `#F4F6FB` lewat `values-v31/styles.xml`.
+  static const Color background = Colors.white;
+
+  /// Abu-abu muda untuk isian form, chip, dan kotak di atas latar putih.
+  /// Bukan lagi warna latar halaman — kalau dipakai sebagai latar, isian form
+  /// dan kotaknya akan menyatu dengan halaman.
   static const Color surface = Color(0xFFF4F6FB);
   static const Color card = Colors.white;
   static const Color textDark = Color(0xFF212529);
@@ -35,7 +43,7 @@ class AppTheme {
         seedColor: AppColors.primary,
         primary: AppColors.primary,
       ),
-      scaffoldBackgroundColor: AppColors.surface,
+      scaffoldBackgroundColor: AppColors.background,
       fontFamily: 'Roboto',
     );
 
@@ -43,7 +51,12 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.card,
         elevation: 0,
-        shape: AppRadius.shape,
+        // Kartu putih di atas latar putih butuh garis tepi supaya batasnya
+        // terlihat. Sebelumnya latar halaman abu-abu yang memisahkannya.
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.br,
+          side: const BorderSide(color: Color(0xFFE9ECEF)),
+        ),
         margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -71,8 +84,10 @@ class AppTheme {
         // Teks contoh ("Contoh: Stok Skincare", dll.) dibuat lebih abu-abu
         // supaya jelas beda dengan isian asli.
         hintStyle: const TextStyle(color: AppColors.hint),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: AppRadius.br,
           borderSide: BorderSide.none,
@@ -87,7 +102,7 @@ class AppTheme {
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.background,
         foregroundColor: AppColors.textDark,
         elevation: 0,
         centerTitle: false,

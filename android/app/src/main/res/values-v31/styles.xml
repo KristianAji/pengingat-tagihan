@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ memakai system splash, bukan windowBackground dari
+         launch_background.xml. Latarnya disamakan dengan AppColors.surface
+         (#F4F6FB) supaya tidak ada layar putih sebelum Flutter tampil. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <!-- Lapisan depan bening, bukan @mipmap/ic_launcher: icon adaptif
+             membawa latar sendiri sehingga tampil sebagai kotak/lingkaran
+             putih di tengah splash. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+    </style>
+</resources>

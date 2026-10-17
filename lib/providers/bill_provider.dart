@@ -57,35 +57,26 @@ class BillProvider extends ChangeNotifier {
   String? get lastError => _lastError;
 
   void _subscribe() {
-    _billsSub = _service.billsStream().listen(
-      (data) {
-        _bills = data;
-        _loading = false;
-        _error = null;
-        notifyListeners();
-        // Fitur 2: jadwalkan ulang notifikasi tiap kali daftar tagihan berubah.
-        // Kegagalannya ditangani di dalam NotificationService, jadi hasilnya
-        // tidak perlu ditunggu di sini.
-        unawaited(NotificationService.instance.scheduleForBills(_bills));
-        // Fitur 4: samakan isi widget Home Screen dengan daftar terbaru.
-        unawaited(WidgetService.instance.syncBills(_bills));
-      },
-      onError: _failBills,
-    );
-    _historySub = _service.historyStream().listen(
-      (data) {
-        _history = data;
-        notifyListeners();
-      },
-      onError: _failSecondary,
-    );
-    _profileSub = _service.profileStream().listen(
-      (data) {
-        _profile = data;
-        notifyListeners();
-      },
-      onError: _failSecondary,
-    );
+    _billsSub = _service.billsStream().listen((data) {
+      _bills = data;
+      _loading = false;
+      _error = null;
+      notifyListeners();
+      // Fitur 2: jadwalkan ulang notifikasi tiap kali daftar tagihan berubah.
+      // Kegagalannya ditangani di dalam NotificationService, jadi hasilnya
+      // tidak perlu ditunggu di sini.
+      unawaited(NotificationService.instance.scheduleForBills(_bills));
+      // Fitur 4: samakan isi widget Home Screen dengan daftar terbaru.
+      unawaited(WidgetService.instance.syncBills(_bills));
+    }, onError: _failBills);
+    _historySub = _service.historyStream().listen((data) {
+      _history = data;
+      notifyListeners();
+    }, onError: _failSecondary);
+    _profileSub = _service.profileStream().listen((data) {
+      _profile = data;
+      notifyListeners();
+    }, onError: _failSecondary);
   }
 
   /// Kegagalan membaca daftar tagihan — Beranda tidak bisa menampilkan apa pun
@@ -133,8 +124,7 @@ class BillProvider extends ChangeNotifier {
 
   /// Tagihan/belanja yang jatuh tempo bulan ini ATAU sudah terlewat.
   /// Yang telat ikut dihitung supaya tidak hilang begitu bulannya berganti.
-  List<Bill> get dueOrOverdue =>
-      _bills.where((b) => b.isDueOrOverdue).toList();
+  List<Bill> get dueOrOverdue => _bills.where((b) => b.isDueOrOverdue).toList();
 
   double get totalDue =>
       dueOrOverdue.fold(0.0, (sum, b) => sum + b.estimatedCost);
@@ -175,8 +165,7 @@ class BillProvider extends ChangeNotifier {
   // ── Fitur 1: Budget Burn-Rate & Predictor ──
 
   /// Hasil perhitungan burn-rate dari profil + tagihan saat ini.
-  BurnRateResult get burnRate =>
-      BurnRateCalculator.calculate(_profile, _bills);
+  BurnRateResult get burnRate => BurnRateCalculator.calculate(_profile, _bills);
 
   /// true jika pengguna sudah mengisi pemasukan & tanggal gajian.
   bool get hasProfile => _profile.isSet;

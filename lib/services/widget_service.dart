@@ -37,7 +37,10 @@ class WidgetService {
   /// Kirim [bills] ke widget. Dipanggil setiap kali daftar tagihan berubah.
   Future<void> syncBills(List<Bill> bills) async {
     try {
-      await HomeWidget.saveWidgetData<String>(_dataKey, _encode(_nearest(bills)));
+      await HomeWidget.saveWidgetData<String>(
+        _dataKey,
+        _encode(_nearest(bills)),
+      );
       await HomeWidget.updateWidget(qualifiedAndroidName: _receiverClass);
     } catch (_) {
       // Diabaikan dengan sengaja.
@@ -56,17 +59,19 @@ class WidgetService {
   }
 
   String _encode(List<Bill> bills) => jsonEncode({
-        'items': bills
-            .map((b) => {
-                  'nama': b.name,
-                  'nominal': Formatters.rupiah(b.estimatedCost),
-                  // Epoch ms, BUKAN teks "3 hari lagi": teks hitungan harinya
-                  // dihitung ulang di sisi Kotlin setiap widget digambar, jadi
-                  // tidak basi walau aplikasi tidak dibuka berhari-hari.
-                  'jatuhTempo': b.dueDate.millisecondsSinceEpoch,
-                })
-            .toList(),
-      });
+    'items': bills
+        .map(
+          (b) => {
+            'nama': b.name,
+            'nominal': Formatters.rupiah(b.estimatedCost),
+            // Epoch ms, BUKAN teks "3 hari lagi": teks hitungan harinya
+            // dihitung ulang di sisi Kotlin setiap widget digambar, jadi
+            // tidak basi walau aplikasi tidak dibuka berhari-hari.
+            'jatuhTempo': b.dueDate.millisecondsSinceEpoch,
+          },
+        )
+        .toList(),
+  });
 
   /// [maxItems] tagihan dengan jatuh tempo terdekat (yang telat ikut, di depan).
   static List<Bill> _nearest(List<Bill> bills) {

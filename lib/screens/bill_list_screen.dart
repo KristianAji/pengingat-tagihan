@@ -27,7 +27,6 @@ class _BillListScreenState extends State<BillListScreen> {
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -121,10 +120,12 @@ class _BillListScreenState extends State<BillListScreen> {
     // Berhasil = diam; Firestore mengirim perubahan lokalnya sendiri sehingga
     // switch langsung bergerak tanpa perlu setState di sini.
     if (await provider.setMandatory(bill, !bill.isMandatory)) return;
-    messenger.showSnackBar(SnackBar(
-      content: Text(provider.lastError ?? 'Gagal menyimpan perubahan.'),
-      behavior: SnackBarBehavior.floating,
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(provider.lastError ?? 'Gagal menyimpan perubahan.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _confirmPay(BuildContext context, Bill bill) {
@@ -150,10 +151,14 @@ class _BillListScreenState extends State<BillListScreen> {
               if (!mounted) return;
               setState(() => _expandedId = null);
               if (!ok) {
-                messenger.showSnackBar(SnackBar(
-                  content: Text(provider.lastError ?? 'Gagal menandai lunas.'),
-                  behavior: SnackBarBehavior.floating,
-                ));
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      provider.lastError ?? 'Gagal menandai lunas.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             child: const Text('Ya, Lunasi'),
@@ -185,10 +190,12 @@ class _BillListScreenState extends State<BillListScreen> {
               if (!mounted) return;
               setState(() => _expandedId = null);
               if (!ok) {
-                messenger.showSnackBar(SnackBar(
-                  content: Text(provider.lastError ?? 'Gagal menghapus.'),
-                  behavior: SnackBarBehavior.floating,
-                ));
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(provider.lastError ?? 'Gagal menghapus.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             child: const Text('Hapus'),

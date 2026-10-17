@@ -74,8 +74,9 @@ class NotificationService {
       try {
         const AndroidInitializationSettings androidInit =
             AndroidInitializationSettings('@mipmap/ic_launcher');
-        const InitializationSettings initSettings =
-            InitializationSettings(android: androidInit);
+        const InitializationSettings initSettings = InitializationSettings(
+          android: androidInit,
+        );
         await _plugin.initialize(settings: initSettings);
         await _createChannels();
       } catch (_) {
@@ -98,34 +99,41 @@ class NotificationService {
     }
   }
 
-  AndroidFlutterLocalNotificationsPlugin? get _android =>
-      _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
 
   Future<void> _createChannels() async {
     final android = _android;
     if (android == null) return;
 
-    await android.createNotificationChannel(const AndroidNotificationChannel(
-      _chLow,
-      'Pengingat Awal (H-7)',
-      description: 'Info tenang tanpa suara saat tenggat masih jauh.',
-      importance: Importance.low,
-      playSound: false,
-      enableVibration: false,
-    ));
-    await android.createNotificationChannel(const AndroidNotificationChannel(
-      _chMedium,
-      'Peringatan (H-3)',
-      description: 'Peringatan standar dengan suara dan getar.',
-      importance: Importance.defaultImportance,
-    ));
-    await android.createNotificationChannel(const AndroidNotificationChannel(
-      _chHigh,
-      'Kritis (H-1 / Hari H)',
-      description: 'Notifikasi penting yang muncul di atas layar.',
-      importance: Importance.high,
-    ));
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _chLow,
+        'Pengingat Awal (H-7)',
+        description: 'Info tenang tanpa suara saat tenggat masih jauh.',
+        importance: Importance.low,
+        playSound: false,
+        enableVibration: false,
+      ),
+    );
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _chMedium,
+        'Peringatan (H-3)',
+        description: 'Peringatan standar dengan suara dan getar.',
+        importance: Importance.defaultImportance,
+      ),
+    );
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _chHigh,
+        'Kritis (H-1 / Hari H)',
+        description: 'Notifikasi penting yang muncul di atas layar.',
+        importance: Importance.high,
+      ),
+    );
   }
 
   Future<void> _requestPermissions() async {
@@ -160,11 +168,11 @@ class NotificationService {
 
   /// Masukkan satu penjadwalan ke rantai.
   Future<void> _enqueueSchedule() {
-    _scheduleChain = _scheduleChain.then((_) => _applySchedule()).catchError(
-      (Object _) {
-        // Kegagalan menjadwalkan tidak boleh memutus rantai berikutnya.
-      },
-    );
+    _scheduleChain = _scheduleChain.then((_) => _applySchedule()).catchError((
+      Object _,
+    ) {
+      // Kegagalan menjadwalkan tidak boleh memutus rantai berikutnya.
+    });
     return _scheduleChain;
   }
 

@@ -36,33 +36,38 @@ void main() {
 
   // Aturan "tanggal terakhir bulan": kalau tanggal pengingat tidak ada di
   // kalender bulan tujuan, dipakai tanggal terakhir bulan itu.
-  test('Bill.dateInMonth jatuh ke tanggal terakhir bulan yang lebih pendek', () {
-    expect(Bill.dateInMonth(2026, 2, 31), DateTime(2026, 2, 28));
-    expect(Bill.dateInMonth(2026, 4, 31), DateTime(2026, 4, 30));
-    expect(Bill.dateInMonth(2026, 10, 31), DateTime(2026, 10, 31));
-  });
+  test(
+    'Bill.dateInMonth jatuh ke tanggal terakhir bulan yang lebih pendek',
+    () {
+      expect(Bill.dateInMonth(2026, 2, 31), DateTime(2026, 2, 28));
+      expect(Bill.dateInMonth(2026, 4, 31), DateTime(2026, 4, 30));
+      expect(Bill.dateInMonth(2026, 10, 31), DateTime(2026, 10, 31));
+    },
+  );
 
   test('Bill.dateInMonth menghormati tahun kabisat', () {
     expect(Bill.dateInMonth(2028, 2, 30), DateTime(2028, 2, 29));
   });
 
-  test('Perulangan bulanan dari tanggal 31 tidak melompat ke bulan berikutnya',
-      () {
-    final bill = Bill(
-      id: '2',
-      name: 'Cicilan',
-      type: BillType.tagihan,
-      repeatEvery: 1,
-      repeatUnit: RepeatUnit.bulan,
-      dueDate: DateTime(2026, 1, 31),
-      reminderOffsets: const [3, 1],
-      estimatedCost: 500000,
-      paymentMethod: 'Transfer',
-      createdAt: DateTime(2026, 1, 1),
-    );
-    // Bukan 3 Maret seperti perhitungan tanggal biasa.
-    expect(bill.nextDueDate, DateTime(2026, 2, 28));
-  });
+  test(
+    'Perulangan bulanan dari tanggal 31 tidak melompat ke bulan berikutnya',
+    () {
+      final bill = Bill(
+        id: '2',
+        name: 'Cicilan',
+        type: BillType.tagihan,
+        repeatEvery: 1,
+        repeatUnit: RepeatUnit.bulan,
+        dueDate: DateTime(2026, 1, 31),
+        reminderOffsets: const [3, 1],
+        estimatedCost: 500000,
+        paymentMethod: 'Transfer',
+        createdAt: DateTime(2026, 1, 1),
+      );
+      // Bukan 3 Maret seperti perhitungan tanggal biasa.
+      expect(bill.nextDueDate, DateTime(2026, 2, 28));
+    },
+  );
 
   test('Formatters.namaBulan mengembalikan nama bulan lengkap', () {
     expect(Formatters.namaBulan(1), 'Januari');
@@ -85,9 +90,11 @@ void main() {
   });
 
   testWidgets('TypeBadge menampilkan label jenis', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: TypeBadge(type: BillType.belanja)),
-    ));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: TypeBadge(type: BillType.belanja)),
+      ),
+    );
     expect(find.text('Belanja'), findsOneWidget);
   });
 }

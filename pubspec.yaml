@@ -59,7 +59,7 @@ dev_dependencies:
   image: ^4.12.0
 
 # Icon aplikasi. Aset di assets/icon/ DIHASILKAN, bukan digambar tangan:
-#   dart run tool/buat_icon.dart      (potong & skalakan dari gambar sumber)
+#   dart run tool/buat_icon.dart      (potong, buang latar, & skalakan)
 #   dart run flutter_launcher_icons   (sebar ke seluruh ukuran mipmap Android)
 # Gambar sumbernya: C:\Semester 5\Mobile\Icon-apliksi-3.jpeg
 flutter_launcher_icons:
@@ -67,9 +67,9 @@ flutter_launcher_icons:
   # iOS di luar cakupan project ini (lihat catatan di README/riwayat).
   ios: false
   image_path: "assets/icon/app_icon.png"
-  # Latar putih menyesuaikan latar gambarnya, yang memang putih — kertas
-  # tagihannya juga putih, jadi putihnya tidak bisa dibuang jadi transparan.
-  adaptive_icon_background: "#FFFFFF"
+  # Latar icon bening. tool/buat_icon.dart membuang putih yang tersambung ke
+  # tepi; kertas tagihan tetap putih karena terkunci garis gelapnya.
+  adaptive_icon_background: "#00000000"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
   # 0 karena subjeknya SUDAH dikecilkan ke kotak tengah 66% oleh
   # tool/buat_icon.dart; menambah inset di sini akan mengecilkannya dua kali.
@@ -89,8 +89,7 @@ flutter:
 
   # Aset yang dibaca aplikasi saat berjalan. Hanya lapisan depan icon yang
   # didaftarkan: `app_icon.png` cuma dipakai `flutter_launcher_icons` saat build,
-  # jadi tidak perlu ikut masuk ke bundel aplikasi. Lihat lib/widgets/app_logo.dart
-  # soal kenapa yang dipakai versi bening, bukan yang berlatar putih.
+  # jadi tidak perlu ikut masuk ke bundel aplikasi.
   assets:
     - assets/icon/app_icon_foreground.png
 

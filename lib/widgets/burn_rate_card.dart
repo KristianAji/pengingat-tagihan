@@ -41,14 +41,19 @@ class BurnRateCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet,
-                  color: Colors.white, size: 20),
+              const Icon(
+                Icons.account_balance_wallet,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
                   'Batas Aman Harian',
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               _statusChip(r.status),
@@ -92,8 +97,10 @@ class BurnRateCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _miniStat('Sisa Uang Bebas', Formatters.rupiah(r.freeCashFlow)),
-              _miniStat('Tagihan Wajib',
-                  Formatters.rupiah(r.totalTagihanWajib)),
+              _miniStat(
+                'Tagihan Wajib',
+                Formatters.rupiah(r.totalTagihanWajib),
+              ),
               _miniStat('Gajian', '${r.sisaHari} hari lagi'),
             ],
           ),
@@ -117,14 +124,19 @@ class BurnRateCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white60, fontSize: 10)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white60, fontSize: 10),
+        ),
         const SizedBox(height: 2),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }
@@ -139,7 +151,10 @@ class BurnRateCard extends StatelessWidget {
       child: Text(
         status.label,
         style: const TextStyle(
-            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -177,15 +192,20 @@ class _SetupPrompt extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.savings_outlined,
-              color: AppColors.primary, size: 32),
+          const Icon(
+            Icons.savings_outlined,
+            color: AppColors.primary,
+            size: 32,
+          ),
           const SizedBox(width: 14),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Aktifkan Budget Harian',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  'Aktifkan Budget Harian',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 SizedBox(height: 2),
                 Text(
                   'Isi pemasukan & tanggal gajian untuk melihat batas aman belanja per hari.',
@@ -211,9 +231,7 @@ Future<void> showBurnRateEditor(BuildContext context) async {
   final profile = provider.profile;
 
   final incomeCtrl = TextEditingController(
-    text: profile.totalPemasukan > 0
-        ? formatAngka(profile.totalPemasukan)
-        : '',
+    text: profile.totalPemasukan > 0 ? formatAngka(profile.totalPemasukan) : '',
   );
   int payday = profile.tanggalGajian;
   final formKey = GlobalKey<FormState>();
@@ -240,7 +258,9 @@ Future<void> showBurnRateEditor(BuildContext context) async {
                   ),
                   validator: (v) {
                     final n = parseRupiah(v);
-                    if (n == null || n <= 0) return 'Masukkan nominal yang valid';
+                    if (n == null || n <= 0) {
+                      return 'Masukkan nominal yang valid';
+                    }
                     return null;
                   },
                 ),
@@ -251,8 +271,12 @@ Future<void> showBurnRateEditor(BuildContext context) async {
                     labelText: 'Tanggal Gajian',
                   ),
                   items: List.generate(31, (i) => i + 1)
-                      .map((n) => DropdownMenuItem(
-                          value: n, child: Text('Tanggal $n')))
+                      .map(
+                        (n) => DropdownMenuItem(
+                          value: n,
+                          child: Text('Tanggal $n'),
+                        ),
+                      )
                       .toList(),
                   onChanged: (v) => setLocal(() => payday = v ?? 1),
                 ),
@@ -271,18 +295,22 @@ Future<void> showBurnRateEditor(BuildContext context) async {
                 // setelah async gap.
                 final messenger = ScaffoldMessenger.of(context);
                 final navigator = Navigator.of(ctx);
-                final ok = await provider.saveProfile(UserProfile(
-                  namaPanggilan: profile.namaPanggilan,
-                  totalPemasukan: parseRupiah(incomeCtrl.text) ?? 0,
-                  tanggalGajian: payday,
-                ));
+                final ok = await provider.saveProfile(
+                  UserProfile(
+                    namaPanggilan: profile.namaPanggilan,
+                    totalPemasukan: parseRupiah(incomeCtrl.text) ?? 0,
+                    tanggalGajian: payday,
+                  ),
+                );
                 if (ok) {
                   navigator.pop();
                 } else {
-                  messenger.showSnackBar(SnackBar(
-                    content: Text(provider.lastError ?? 'Gagal menyimpan.'),
-                    behavior: SnackBarBehavior.floating,
-                  ));
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(provider.lastError ?? 'Gagal menyimpan.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
                 }
               },
               child: const Text('Simpan'),

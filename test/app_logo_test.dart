@@ -12,26 +12,31 @@ void main() {
     expect(data.lengthInBytes, greaterThan(0));
   });
 
-  testWidgets('kotak gambar mengikuti ukuran subjek yang diminta',
-      (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: Center(child: AppLogo(size: 74))),
-    ));
+  testWidgets('kotak gambar mengikuti ukuran subjek yang diminta', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: AppLogo(size: 74))),
+      ),
+    );
 
-    // Subjek hanya menempati 66% kanvas, jadi kotaknya harus 1,515x lebih besar
-    // dari `size` — kalau tidak, maskotnya tampil lebih kecil dari icon yang
-    // digantikannya.
+    // Subjek hanya menempati 72% kanvas, jadi kotaknya harus 1,3875x lebih
+    // besar dari `size` — kalau tidak, maskotnya tampil lebih kecil dari icon
+    // yang digantikannya.
     final kotak = tester.getSize(find.byType(AppLogo));
-    expect(kotak.width, closeTo(74 * 1.515, 0.01));
-    expect(kotak.height, closeTo(74 * 1.515, 0.01));
+    expect(kotak.width, closeTo(74 * 1.3875, 0.01));
+    expect(kotak.height, closeTo(74 * 1.3875, 0.01));
   });
 
   testWidgets('ukuran bisa diperbesar untuk keadaan kosong', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(body: Center(child: AppLogo(size: 96))),
-    ));
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: AppLogo(size: 96))),
+      ),
+    );
 
     final kotak = tester.getSize(find.byType(AppLogo));
-    expect(kotak.width, closeTo(96 * 1.515, 0.01));
+    expect(kotak.width, closeTo(96 * 1.3875, 0.01));
   });
 }

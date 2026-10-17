@@ -23,8 +23,10 @@ class UserProfile {
   });
 
   /// Profil default (belum diisi): dipakai sebagai nilai awal UI.
-  static const UserProfile empty =
-      UserProfile(totalPemasukan: 0, tanggalGajian: 1);
+  static const UserProfile empty = UserProfile(
+    totalPemasukan: 0,
+    tanggalGajian: 1,
+  );
 
   /// true jika pengguna sudah mengisi datanya (dipakai untuk prompt setup).
   bool get isSet => totalPemasukan > 0;
@@ -42,16 +44,16 @@ class UserProfile {
   }
 
   Map<String, dynamic> toMap() => {
-        'namaPanggilan': namaPanggilan,
-        'totalPemasukan': totalPemasukan,
-        'tanggalGajian': tanggalGajian,
-      };
+    'namaPanggilan': namaPanggilan,
+    'totalPemasukan': totalPemasukan,
+    'tanggalGajian': tanggalGajian,
+  };
 
   factory UserProfile.fromMap(Map<String, dynamic> map) => UserProfile(
-        namaPanggilan: (map['namaPanggilan'] as String?)?.trim() ?? '',
-        totalPemasukan: (map['totalPemasukan'] as num?)?.toDouble() ?? 0,
-        tanggalGajian: (map['tanggalGajian'] as num?)?.toInt() ?? 1,
-      );
+    namaPanggilan: (map['namaPanggilan'] as String?)?.trim() ?? '',
+    totalPemasukan: (map['totalPemasukan'] as num?)?.toDouble() ?? 0,
+    tanggalGajian: (map['tanggalGajian'] as num?)?.toInt() ?? 1,
+  );
 
   String toJson() => jsonEncode(toMap());
   factory UserProfile.fromJson(String source) =>

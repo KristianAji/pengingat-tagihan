@@ -46,10 +46,7 @@ class AppChoiceChip extends StatelessWidget {
                 color: selected ? Colors.white : AppColors.textMuted,
               ),
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 4),
-              trailing!,
-            ],
+            if (trailing != null) ...[const SizedBox(width: 4), trailing!],
           ],
         ),
       ),

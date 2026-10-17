@@ -160,13 +160,7 @@ class Bill {
     int minute = 0,
   }) {
     final lastDay = DateTime(year, month + 1, 0).day;
-    return DateTime(
-      year,
-      month,
-      day <= lastDay ? day : lastDay,
-      hour,
-      minute,
-    );
+    return DateTime(year, month, day <= lastDay ? day : lastDay, hour, minute);
   }
 
   Bill copyWith({
@@ -200,20 +194,20 @@ class Bill {
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'type': type.index,
-        'repeatEvery': repeatEvery,
-        'repeatUnit': repeatUnit.index,
-        'dueDate': dueDate.toIso8601String(),
-        'reminderOffsets': reminderOffsets,
-        'estimatedCost': estimatedCost,
-        'paymentMethod': paymentMethod,
-        'repeatLimit': repeatLimit,
-        'remaining': remaining,
-        'createdAt': createdAt.toIso8601String(),
-        'isMandatory': isMandatory,
-      };
+    'id': id,
+    'name': name,
+    'type': type.index,
+    'repeatEvery': repeatEvery,
+    'repeatUnit': repeatUnit.index,
+    'dueDate': dueDate.toIso8601String(),
+    'reminderOffsets': reminderOffsets,
+    'estimatedCost': estimatedCost,
+    'paymentMethod': paymentMethod,
+    'repeatLimit': repeatLimit,
+    'remaining': remaining,
+    'createdAt': createdAt.toIso8601String(),
+    'isMandatory': isMandatory,
+  };
 
   factory Bill.fromMap(Map<String, dynamic> map) {
     final type = BillType.values[map['type'] as int];
@@ -224,8 +218,9 @@ class Bill {
       repeatEvery: map['repeatEvery'] as int,
       repeatUnit: RepeatUnit.values[map['repeatUnit'] as int],
       dueDate: DateTime.parse(map['dueDate'] as String),
-      reminderOffsets:
-          (map['reminderOffsets'] as List).map((e) => e as int).toList(),
+      reminderOffsets: (map['reminderOffsets'] as List)
+          .map((e) => e as int)
+          .toList(),
       estimatedCost: (map['estimatedCost'] as num).toDouble(),
       paymentMethod: map['paymentMethod'] as String,
       repeatLimit: map['repeatLimit'] as int?,
