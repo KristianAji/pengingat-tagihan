@@ -43,13 +43,9 @@ class DashboardScreen extends StatelessWidget {
       children: [
         Text(
           'Halo, $name 👋',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 2),
-        const Text(
-          'Berikut ringkasan tagihanmu bulan ini',
-          style: TextStyle(color: AppColors.textMuted),
-        ),
         const SizedBox(height: 18),
 
         // ── Fitur 1: Budget Burn-Rate & Predictor (kartu utama) ──
@@ -61,7 +57,7 @@ class DashboardScreen extends StatelessWidget {
         const SizedBox(height: 22),
 
         // ── Section 1: total + 2 tagihan terdekat ──
-        _sectionTitle('Ringkasan Bulan Ini'),
+        _sectionTitle('Meowminder untuk bulan ini'),
         const SizedBox(height: 10),
         IntrinsicHeight(
           child: Row(
@@ -79,7 +75,7 @@ class DashboardScreen extends StatelessWidget {
         const SizedBox(height: 22),
 
         // ── Section 2: diagram pengeluaran per kategori ──
-        _sectionTitle('Total Pengeluaran'),
+        _sectionTitle('Pengeluaran'),
         const SizedBox(height: 10),
         Card(
           child: Padding(
@@ -96,7 +92,7 @@ class DashboardScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Expanded supaya judul yang panjang tidak meluber di layar sempit.
-            Expanded(child: _sectionTitle('Tagihan Bulan Ini & Terlewat')),
+            Expanded(child: _sectionTitle('Moewlist Bulan ini & Meowdue')),
             TextButton(
               onPressed: () => Navigator.of(
                 context,
@@ -168,8 +164,8 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '$count item bulan ini',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            '$count Meowlist Bulan ini',
+            style: const TextStyle(color: Colors.white70, fontSize: 8),
           ),
         ],
       ),
@@ -298,7 +294,7 @@ class DashboardScreen extends StatelessWidget {
               context,
             ).push(MaterialPageRoute(builder: (_) => const AddBillScreen())),
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Tambah daftar'),
+            label: const Text('Tambah Meowlist'),
           ),
         ],
       ),

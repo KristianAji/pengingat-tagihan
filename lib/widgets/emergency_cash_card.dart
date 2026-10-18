@@ -118,8 +118,7 @@ class EmergencyCashCardView extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Hanya item yang ditandai wajib yang dihitung. Ubah lewat Detail '
-            'sebuah item di halaman Daftar.',
+            'Khusus item berlabel "wajib". Ubah di halaman Daftar.',
             style: TextStyle(fontSize: 11, color: AppColors.textMuted),
           ),
         ],

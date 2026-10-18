@@ -63,16 +63,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo aplikasi tanpa kotak latar — maskot tampil polos.
-                  const Center(child: AppLogo()),
+                  const Center(child: AppLogo(size: 88)),
                   const SizedBox(height: 14),
                   const Text(
-                    'Masuk',
+                    'Selamat datang di Meongat',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Kelola tagihan & belanja bulananmu',
+                    'Masuk ke Akun Anda',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textMuted),
                   ),

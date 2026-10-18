@@ -52,27 +52,11 @@ class DashboardBillCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Baris atas: nama + kategori (kiri), countdown (kanan)
+          // Baris atas: badge kategori (kiri) + countdown (kanan)
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        bill.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TypeBadge(type: bill.type),
-                  ],
-                ),
-              ),
+              TypeBadge(type: bill.type),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -93,6 +77,13 @@ class DashboardBillCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // Nama tagihan: tanpa batas baris, kartu memanjang ke bawah
+          Text(
+            bill.name,
+            softWrap: true,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
           ),
           const SizedBox(height: 12),
           // Baris tengah: metode bayar (kiri) + frekuensi pengingat (kanan)

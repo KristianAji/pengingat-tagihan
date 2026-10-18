@@ -10,26 +10,18 @@ class AppRadius {
 }
 
 class AppColors {
-  static const Color primary = Color(0xFF4C6EF5);
-  static const Color primaryDark = Color(0xFF3B5BDB);
-  static const Color tagihan = Color(0xFF4C6EF5);
-  static const Color belanja = Color(0xFF12B886);
-  static const Color danger = Color(0xFFFA5252);
-  static const Color warning = Color(0xFFF08C00);
+  static const Color primary = Color(0xFF16153E); // navy outline ikon
+  static const Color primaryDark = Color(0xFF0D0C2B); // navy lebih gelap
+  static const Color tagihan = Color(0xFFF6877A); // coral
+  static const Color belanja = Color(0xFFF8BD7F); // oranye peach
+  static const Color danger = Color(0xFFFA5252); // tetap
+  static const Color warning = Color(0xFFF08C00); // tetap
 
-  /// Latar layar di dalam aplikasi — putih bersih (permintaan pengguna,
-  /// 2026-10-17). Splash sengaja TETAP `#F4F6FB` lewat `values-v31/styles.xml`.
-  static const Color background = Colors.white;
-
-  /// Abu-abu muda untuk isian form, chip, dan kotak di atas latar putih.
-  /// Bukan lagi warna latar halaman — kalau dipakai sebagai latar, isian form
-  /// dan kotaknya akan menyatu dengan halaman.
-  static const Color surface = Color(0xFFF4F6FB);
+  static const Color background = Colors.white; // tetap
+  static const Color surface = Color(0xFFF4F6FB); // tetap
   static const Color card = Colors.white;
-  static const Color textDark = Color(0xFF212529);
+  static const Color textDark = Color(0xFF16153E); // navy, senada outline ikon
   static const Color textMuted = Color(0xFF868E96);
-
-  /// Warna teks contoh/placeholder — lebih pudar dari [textMuted].
   static const Color hint = Color(0xFFADB5BD);
 
   static Color forType(bool isTagihan) => isTagihan ? tagihan : belanja;
