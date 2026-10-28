@@ -28,7 +28,12 @@ class FirestoreService {
     return _bills
         .orderBy('dueDate')
         .snapshots()
-        .map((snap) => snap.docs.map((d) => Bill.fromMap(d.data())).toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => Bill.tryFromMap(d.data()))
+              .whereType<Bill>() // dokumen rusak dilewati, bukan menggagalkan
+              .toList(),
+        );
   }
 
   Stream<List<HistoryEntry>> historyStream() {

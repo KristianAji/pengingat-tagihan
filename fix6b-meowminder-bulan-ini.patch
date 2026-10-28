@@ -1,0 +1,151 @@
+diff --git a/lib/providers/bill_provider.dart b/lib/providers/bill_provider.dart
+index 2dd8d8c..4f3cc26 100644
+--- a/lib/providers/bill_provider.dart
++++ b/lib/providers/bill_provider.dart
+@@ -11,6 +11,7 @@ import '../services/notification_service.dart';
+ import '../services/widget_service.dart';
+ import '../utils/bill_sort.dart';
+ import '../utils/burn_rate.dart';
++import '../utils/nearest_due.dart';
+ import '../utils/emergency_cash.dart';
+ 
+ /// State utama aplikasi, kini bersumber dari Firestore (per-pengguna).
+@@ -129,11 +130,8 @@ class BillProvider extends ChangeNotifier {
+   double get totalDue =>
+       dueOrOverdue.fold(0.0, (sum, b) => sum + b.estimatedCost);
+ 
+-  List<Bill> get nearestDue {
+-    final sorted = [..._bills]
+-      ..sort((a, b) => a.daysUntilDue.compareTo(b.daysUntilDue));
+-    return sorted.take(2).toList();
+-  }
++  /// Dua tagihan terdekat DI ANTARA yang jatuh tempo bulan ini atau telat.
++  List<Bill> get nearestDue => nearestDueBills(_bills);
+ 
+   Map<BillType, double> get spendingByCategory {
+     final map = <BillType, double>{};
+diff --git a/lib/screens/dashboard_screen.dart b/lib/screens/dashboard_screen.dart
+index f5f0c54..6cdf369 100644
+--- a/lib/screens/dashboard_screen.dart
++++ b/lib/screens/dashboard_screen.dart
+@@ -183,7 +183,7 @@ class DashboardScreen extends StatelessWidget {
+         ),
+         child: const Center(
+           child: Text(
+-            'Tidak ada tenggat dekat',
++            'Tidak ada tenggat bulan ini',
+             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+           ),
+         ),
+diff --git a/lib/utils/nearest_due.dart b/lib/utils/nearest_due.dart
+new file mode 100644
+index 0000000..6201d98
+--- /dev/null
++++ b/lib/utils/nearest_due.dart
+@@ -0,0 +1,17 @@
++import '../models/bill.dart';
++
++/// Tagihan/belanja yang paling dekat jatuh temponya, khusus untuk kotak
++/// "Meowminder untuk bulan ini" di Beranda.
++///
++/// Hanya item yang jatuh tempo bulan ini ATAU sudah telat yang ikut
++/// ([Bill.isDueOrOverdue]) — aturan yang sama dengan daftar dan total di
++/// bagian yang sama. Dulu semua tagihan dipertimbangkan, sehingga kotak ini
++/// bisa menampilkan tagihan bulan depan di bawah judul "bulan ini".
++///
++/// Diurutkan menurut jumlah hari ke jatuh tempo, jadi yang paling telat
++/// (angka paling negatif) berada di depan.
++List<Bill> nearestDueBills(List<Bill> bills, {int limit = 2}) {
++  final sorted = bills.where((b) => b.isDueOrOverdue).toList()
++    ..sort((a, b) => a.daysUntilDue.compareTo(b.daysUntilDue));
++  return sorted.take(limit).toList();
++}
+diff --git a/test/nearest_due_test.dart b/test/nearest_due_test.dart
+new file mode 100644
+index 0000000..bba5cee
+--- /dev/null
++++ b/test/nearest_due_test.dart
+@@ -0,0 +1,83 @@
++import 'package:flutter_test/flutter_test.dart';
++
++import 'package:pengingat_tagihan/models/bill.dart';
++import 'package:pengingat_tagihan/utils/nearest_due.dart';
++
++Bill _bill(String id, DateTime dueDate) {
++  return Bill(
++    id: id,
++    name: id,
++    type: BillType.tagihan,
++    repeatEvery: 1,
++    repeatUnit: RepeatUnit.bulan,
++    dueDate: dueDate,
++    reminderOffsets: const [3, 1],
++    estimatedCost: 100000,
++    paymentMethod: 'Dana',
++    createdAt: DateTime(2026, 1, 1),
++  );
++}
++
++List<String> _ids(List<Bill> bills) => bills.map((b) => b.id).toList();
++
++void main() {
++  final now = DateTime.now();
++  // Hari terakhir bulan ini: pasti masih "bulan ini", tidak peduli tanggal
++  // berapa tes dijalankan.
++  final akhirBulan = DateTime(now.year, now.month + 1, 0);
++  // Tanggal 15 bulan depan: pasti di luar bulan ini.
++  final bulanDepan = DateTime(now.year, now.month + 1, 15);
++  final telat = DateTime(now.year, now.month, now.day - 5);
++
++  group('nearestDueBills', () {
++    test('tagihan bulan depan TIDAK ikut', () {
++      final hasil = nearestDueBills([
++        _bill('depan', bulanDepan),
++        _bill('ini', akhirBulan),
++      ]);
++
++      expect(_ids(hasil), ['ini']);
++    });
++
++    test('kosong bila semua tagihan jatuh tempo bulan depan', () {
++      final hasil = nearestDueBills([
++        _bill('a', bulanDepan),
++        _bill('b', DateTime(now.year, now.month + 2, 1)),
++      ]);
++
++      expect(hasil, isEmpty);
++    });
++
++    test('tagihan telat ikut dan berada paling depan', () {
++      final hasil = nearestDueBills([
++        _bill('ini', akhirBulan),
++        _bill('telat', telat),
++      ]);
++
++      expect(_ids(hasil), ['telat', 'ini']);
++    });
++
++    test('dibatasi dua, urut dari yang paling dekat', () {
++      final hasil = nearestDueBills([
++        _bill('akhir', akhirBulan),
++        _bill('telat', telat),
++        _bill('telat-lama', DateTime(now.year, now.month, now.day - 20)),
++      ]);
++
++      expect(_ids(hasil), ['telat-lama', 'telat']);
++    });
++
++    test('limit bisa diatur', () {
++      final hasil = nearestDueBills([
++        _bill('a', telat),
++        _bill('b', akhirBulan),
++      ], limit: 1);
++
++      expect(hasil, hasLength(1));
++    });
++
++    test('daftar kosong -> kosong', () {
++      expect(nearestDueBills(const []), isEmpty);
++    });
++  });
++}

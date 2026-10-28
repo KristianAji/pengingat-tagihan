@@ -11,6 +11,7 @@ import '../services/notification_service.dart';
 import '../services/widget_service.dart';
 import '../utils/bill_sort.dart';
 import '../utils/burn_rate.dart';
+import '../utils/nearest_due.dart';
 import '../utils/emergency_cash.dart';
 
 /// State utama aplikasi, kini bersumber dari Firestore (per-pengguna).
@@ -129,11 +130,8 @@ class BillProvider extends ChangeNotifier {
   double get totalDue =>
       dueOrOverdue.fold(0.0, (sum, b) => sum + b.estimatedCost);
 
-  List<Bill> get nearestDue {
-    final sorted = [..._bills]
-      ..sort((a, b) => a.daysUntilDue.compareTo(b.daysUntilDue));
-    return sorted.take(2).toList();
-  }
+  /// Dua tagihan terdekat DI ANTARA yang jatuh tempo bulan ini atau telat.
+  List<Bill> get nearestDue => nearestDueBills(_bills);
 
   Map<BillType, double> get spendingByCategory {
     final map = <BillType, double>{};

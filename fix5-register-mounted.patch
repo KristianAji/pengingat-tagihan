@@ -1,0 +1,16 @@
+diff --git a/lib/screens/register_screen.dart b/lib/screens/register_screen.dart
+index 7842963..824a6b9 100644
+--- a/lib/screens/register_screen.dart
++++ b/lib/screens/register_screen.dart
+@@ -55,6 +55,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
+   }
+ 
+   void _showError(String msg) {
++    // Setelah register() berhasil, authStateChanges mengganti seluruh pohon
++    // MaterialApp sehingga layar ini bisa sudah ter-dispose saat blok catch
++    // berjalan (mis. saveNamaPanggilan gagal). Memakai context di sini tanpa
++    // pengecekan akan melempar error yang tidak tertangkap.
++    if (!mounted) return;
+     ScaffoldMessenger.of(context).showSnackBar(
+       SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+     );

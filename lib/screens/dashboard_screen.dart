@@ -183,7 +183,7 @@ class DashboardScreen extends StatelessWidget {
         ),
         child: const Center(
           child: Text(
-            'Tidak ada tenggat dekat',
+            'Tidak ada tenggat bulan ini',
             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
           ),
         ),

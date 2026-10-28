@@ -297,6 +297,21 @@ class Bill {
     );
   }
 
+  /// Seperti [fromMap], tetapi mengembalikan null bila dokumennya rusak
+  /// (field hilang, tipe salah, tanggal tidak terbaca, indeks enum di luar
+  /// jangkauan) alih-alih melempar.
+  ///
+  /// Dipakai stream Firestore: satu dokumen cacat tidak boleh menggagalkan
+  /// seluruh daftar, yang akan membuat Beranda menampilkan layar error
+  /// padahal tagihan lainnya baik-baik saja.
+  static Bill? tryFromMap(Map<String, dynamic> map) {
+    try {
+      return Bill.fromMap(map);
+    } catch (_) {
+      return null;
+    }
+  }
+
   String toJson() => jsonEncode(toMap());
   factory Bill.fromJson(String source) =>
       Bill.fromMap(jsonDecode(source) as Map<String, dynamic>);
