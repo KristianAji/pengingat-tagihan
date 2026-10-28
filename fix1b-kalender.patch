@@ -1,0 +1,306 @@
+diff --git a/lib/main.dart b/lib/main.dart
+index bbd6508..70d818c 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -3,6 +3,7 @@ import 'dart:async';
+ import 'package:firebase_auth/firebase_auth.dart';
+ import 'package:firebase_core/firebase_core.dart';
+ import 'package:flutter/material.dart';
++import 'package:flutter_localizations/flutter_localizations.dart';
+ import 'package:provider/provider.dart';
+ 
+ import 'firebase_options.dart';
+@@ -61,6 +62,10 @@ class _PengingatTagihanAppState extends State<PengingatTagihanApp> {
+             title: 'Pengingat Tagihan',
+             debugShowCheckedModeBanner: false,
+             theme: AppTheme.light,
++            // Kalender & dialog bawaan Material tampil berbahasa Indonesia.
++            locale: const Locale('id', 'ID'),
++            supportedLocales: const [Locale('id', 'ID')],
++            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+             home: home,
+           );
+ 
+diff --git a/lib/screens/add_bill_screen.dart b/lib/screens/add_bill_screen.dart
+index 5d75b80..2daa24f 100644
+--- a/lib/screens/add_bill_screen.dart
++++ b/lib/screens/add_bill_screen.dart
+@@ -60,27 +60,40 @@ class _AddBillScreenState extends State<AddBillScreen> {
+   bool _isMandatory = true;
+   bool _mandatoryTouched = false;
+ 
+-  /// "Ingatkan Pada": tanggal (1-31) & bulan pengingat. Tahunnya diambil
+-  /// otomatis dari kemunculan terdekat.
+-  int? _reminderDay;
+-  int? _reminderMonth;
+-
+-  /// Tanggal jatuh tempo hasil pilihan "Ingatkan Pada".
++  /// "Ingatkan Pada": tanggal jatuh tempo pertama, dipilih lewat kalender.
+   ///
+-  /// Karena tahun tidak dipilih, tahun diambil dari kemunculan terdekat:
+-  /// tahun ini bila tanggalnya belum lewat, kalau sudah lewat tahun depan.
+-  DateTime? get _dueDate {
+-    final day = _reminderDay;
+-    final month = _reminderMonth;
+-    if (day == null || month == null) return null;
++  /// Tahunnya ikut dipilih (tidak ditebak), jadi tanggal yang terlihat di
++  /// layar persis yang disimpan.
++  DateTime? _dueDate;
++
++  /// Label perulangan yang sedang dipilih, mis. "1 Bulan Sekali".
++  String get _repeatLabel => _useCustomRepeat
++      ? '$_customEvery ${_customUnit.label} Sekali'
++      : _presets[_presetIndex].label;
++
++  bool get _repeatsMonthly =>
++      (_useCustomRepeat ? _customUnit : _presets[_presetIndex].unit) ==
++      RepeatUnit.bulan;
+ 
++  Future<void> _pickDueDate() async {
+     final now = DateTime.now();
+     final today = DateTime(now.year, now.month, now.day);
+-    final thisYear = Bill.dateInMonth(now.year, month, day);
+-    if (thisYear.isBefore(today)) {
+-      return Bill.dateInMonth(now.year + 1, month, day);
+-    }
+-    return thisYear;
++    final current = _dueDate;
++    final picked = await showDatePicker(
++      context: context,
++      // initialDate tidak boleh sebelum firstDate (bisa terjadi bila form
++      // dibiarkan terbuka melewati tengah malam).
++      initialDate: (current != null && !current.isBefore(today))
++          ? current
++          : today,
++      firstDate: today,
++      lastDate: DateTime(today.year + 5, 12, 31),
++      helpText: 'Pilih tanggal jatuh tempo',
++      cancelText: 'Batal',
++      confirmText: 'Pilih',
++    );
++    if (picked == null || !mounted) return;
++    setState(() => _dueDate = picked);
+   }
+ 
+   Future<void> _save() async {
+@@ -88,7 +101,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
+     if (!_formKey.currentState!.validate()) return;
+     final dueDate = _dueDate;
+     if (dueDate == null) {
+-      _showSnack('Silakan pilih tanggal & bulan pada "Ingatkan Pada"');
++      _showSnack('Silakan pilih tanggal pada "Ingatkan Pada"');
+       return;
+     }
+     if (_offsets.isEmpty) {
+@@ -110,9 +123,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
+       repeatEvery: every,
+       repeatUnit: unit,
+       dueDate: dueDate,
+-      // Tanggal yang dipilih pengguna (mis. 31) disimpan apa adanya, walau
+-      // jatuh tempo pertama terpotong ke bulan pendek (28 Feb).
+-      anchorDay: unit == RepeatUnit.bulan ? _reminderDay : null,
++      // Tanggal yang dipilih (mis. 31) jadi acuan perulangan bulanan, supaya
++      // bulan pendek (28 Feb) tidak menggeser tanggal bulan-bulan berikutnya.
++      anchorDay: unit == RepeatUnit.bulan ? dueDate.day : null,
+       reminderOffsets: offsets,
+       estimatedCost: parseRupiah(_costCtrl.text) ?? 0,
+       paymentMethod: _paymentCtrl.text.trim(),
+@@ -485,65 +498,35 @@ class _AddBillScreenState extends State<AddBillScreen> {
+     );
+   }
+ 
+-  /// "Ingatkan Pada": pilih tanggal (1-31) & bulan — tanpa tahun.
++  /// "Ingatkan Pada": satu kolom yang membuka kalender.
+   Widget _reminderSection() {
+     final due = _dueDate;
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+-        Row(
+-          children: [
+-            Expanded(
+-              child: DropdownButtonFormField<int>(
+-                initialValue: _reminderDay,
+-                isExpanded: true,
+-                hint: const Text('Pilih tanggal'),
+-                decoration: const InputDecoration(
+-                  contentPadding: EdgeInsets.symmetric(
+-                    horizontal: 12,
+-                    vertical: 8,
+-                  ),
+-                ),
+-                items: List.generate(31, (i) => i + 1)
+-                    .map(
+-                      (d) =>
+-                          DropdownMenuItem(value: d, child: Text('Tanggal $d')),
+-                    )
+-                    .toList(),
+-                onChanged: (v) => setState(() => _reminderDay = v),
+-              ),
++        InkWell(
++          borderRadius: AppRadius.br,
++          onTap: _pickDueDate,
++          child: InputDecorator(
++            decoration: const InputDecoration(
++              prefixIcon: Icon(Icons.calendar_month_outlined),
++              suffixIcon: Icon(Icons.arrow_drop_down),
+             ),
+-            const SizedBox(width: 10),
+-            Expanded(
+-              child: DropdownButtonFormField<int>(
+-                initialValue: _reminderMonth,
+-                isExpanded: true,
+-                hint: const Text('Pilih bulan'),
+-                decoration: const InputDecoration(
+-                  contentPadding: EdgeInsets.symmetric(
+-                    horizontal: 12,
+-                    vertical: 8,
+-                  ),
+-                ),
+-                items: List.generate(12, (i) => i + 1)
+-                    .map(
+-                      (m) => DropdownMenuItem(
+-                        value: m,
+-                        child: Text(Formatters.namaBulan(m)),
+-                      ),
+-                    )
+-                    .toList(),
+-                onChanged: (v) => setState(() => _reminderMonth = v),
++            child: Text(
++              due == null ? 'Pilih tanggal' : Formatters.tanggal(due),
++              style: TextStyle(
++                fontSize: 16,
++                color: due == null ? AppColors.hint : AppColors.textDark,
+               ),
+             ),
+-          ],
++          ),
+         ),
+         const SizedBox(height: 8),
+         if (due == null)
+           const Padding(
+             padding: EdgeInsets.only(left: 4),
+             child: Text(
+-              'Pilih tanggal & bulan pengingat',
++              'Pilih tanggal jatuh tempo pertama',
+               style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+             ),
+           )
+@@ -554,7 +537,6 @@ class _AddBillScreenState extends State<AddBillScreen> {
+   }
+ 
+   Widget _reminderSummary(DateTime due) {
+-    final day = _reminderDay!;
+     return Container(
+       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+       decoration: BoxDecoration(
+@@ -571,7 +553,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text(
+-                  'Setiap Tanggal $day',
++                  'Diulang $_repeatLabel',
+                   style: const TextStyle(
+                     fontWeight: FontWeight.w800,
+                     color: AppColors.primaryDark,
+@@ -585,7 +567,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
+                     color: AppColors.textMuted,
+                   ),
+                 ),
+-                if (day > 28) ...[
++                if (_repeatsMonthly && due.day > 28) ...[
+                   const SizedBox(height: 2),
+                   const Text(
+                     'Di bulan yang lebih pendek, pengingat jatuh pada tanggal '
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 9607a76..ae921bd 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -30,6 +30,8 @@ environment:
+ dependencies:
+   flutter:
+     sdk: flutter
++  flutter_localizations:
++    sdk: flutter
+ 
+   # The following adds the Cupertino Icons font to your application.
+   # Use with the CupertinoIcons class for iOS style icons.
+diff --git a/test/add_bill_date_test.dart b/test/add_bill_date_test.dart
+new file mode 100644
+index 0000000..ed7af16
+--- /dev/null
++++ b/test/add_bill_date_test.dart
+@@ -0,0 +1,73 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_localizations/flutter_localizations.dart';
++import 'package:flutter_test/flutter_test.dart';
++
++import 'package:pengingat_tagihan/screens/add_bill_screen.dart';
++import 'package:pengingat_tagihan/utils/formatters.dart';
++
++// AddBillScreen baru membutuhkan BillProvider saat menyimpan, jadi kolom
++// tanggalnya bisa diuji tanpa Firebase.
++
++Widget _host() => MaterialApp(
++  locale: const Locale('id', 'ID'),
++  supportedLocales: const [Locale('id', 'ID')],
++  localizationsDelegates: GlobalMaterialLocalizations.delegates,
++  home: const AddBillScreen(),
++);
++
++Future<void> _showField(WidgetTester tester) async {
++  await tester.pumpWidget(_host());
++  await tester.scrollUntilVisible(
++    find.text('Pilih tanggal'),
++    200,
++    scrollable: find.byType(Scrollable).first,
++  );
++}
++
++void main() {
++  testWidgets('awalnya belum ada tanggal terpilih', (tester) async {
++    await _showField(tester);
++
++    expect(find.text('Pilih tanggal'), findsOneWidget);
++    expect(find.text('Pilih tanggal jatuh tempo pertama'), findsOneWidget);
++  });
++
++  testWidgets('mengetuk kolom membuka kalender', (tester) async {
++    await _showField(tester);
++
++    await tester.tap(find.text('Pilih tanggal'));
++    await tester.pumpAndSettle();
++
++    expect(find.byType(DatePickerDialog), findsOneWidget);
++  });
++
++  testWidgets('memilih tanggal menampilkannya beserta ringkasan', (
++    tester,
++  ) async {
++    await _showField(tester);
++    final now = DateTime.now();
++    final today = DateTime(now.year, now.month, now.day);
++
++    await tester.tap(find.text('Pilih tanggal'));
++    await tester.pumpAndSettle();
++    await tester.tap(find.text('Pilih')); // tanggal awal kalender = hari ini
++    await tester.pumpAndSettle();
++
++    expect(find.byType(DatePickerDialog), findsNothing);
++    expect(find.text(Formatters.tanggal(today)), findsWidgets);
++    // Preset bawaan: 1 Bulan Sekali.
++    expect(find.text('Diulang 1 Bulan Sekali'), findsOneWidget);
++  });
++
++  testWidgets('Batal menutup kalender tanpa mengisi tanggal', (tester) async {
++    await _showField(tester);
++
++    await tester.tap(find.text('Pilih tanggal'));
++    await tester.pumpAndSettle();
++    await tester.tap(find.text('Batal'));
++    await tester.pumpAndSettle();
++
++    expect(find.byType(DatePickerDialog), findsNothing);
++    expect(find.text('Pilih tanggal'), findsOneWidget);
++  });
++}

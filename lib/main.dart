@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options.dart';
@@ -61,6 +62,10 @@ class _PengingatTagihanAppState extends State<PengingatTagihanApp> {
             title: 'Pengingat Tagihan',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
+            // Kalender & dialog bawaan Material tampil berbahasa Indonesia.
+            locale: const Locale('id', 'ID'),
+            supportedLocales: const [Locale('id', 'ID')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             home: home,
           );
 

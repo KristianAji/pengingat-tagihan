@@ -60,27 +60,40 @@ class _AddBillScreenState extends State<AddBillScreen> {
   bool _isMandatory = true;
   bool _mandatoryTouched = false;
 
-  /// "Ingatkan Pada": tanggal (1-31) & bulan pengingat. Tahunnya diambil
-  /// otomatis dari kemunculan terdekat.
-  int? _reminderDay;
-  int? _reminderMonth;
-
-  /// Tanggal jatuh tempo hasil pilihan "Ingatkan Pada".
+  /// "Ingatkan Pada": tanggal jatuh tempo pertama, dipilih lewat kalender.
   ///
-  /// Karena tahun tidak dipilih, tahun diambil dari kemunculan terdekat:
-  /// tahun ini bila tanggalnya belum lewat, kalau sudah lewat tahun depan.
-  DateTime? get _dueDate {
-    final day = _reminderDay;
-    final month = _reminderMonth;
-    if (day == null || month == null) return null;
+  /// Tahunnya ikut dipilih (tidak ditebak), jadi tanggal yang terlihat di
+  /// layar persis yang disimpan.
+  DateTime? _dueDate;
 
+  /// Label perulangan yang sedang dipilih, mis. "1 Bulan Sekali".
+  String get _repeatLabel => _useCustomRepeat
+      ? '$_customEvery ${_customUnit.label} Sekali'
+      : _presets[_presetIndex].label;
+
+  bool get _repeatsMonthly =>
+      (_useCustomRepeat ? _customUnit : _presets[_presetIndex].unit) ==
+      RepeatUnit.bulan;
+
+  Future<void> _pickDueDate() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final thisYear = Bill.dateInMonth(now.year, month, day);
-    if (thisYear.isBefore(today)) {
-      return Bill.dateInMonth(now.year + 1, month, day);
-    }
-    return thisYear;
+    final current = _dueDate;
+    final picked = await showDatePicker(
+      context: context,
+      // initialDate tidak boleh sebelum firstDate (bisa terjadi bila form
+      // dibiarkan terbuka melewati tengah malam).
+      initialDate: (current != null && !current.isBefore(today))
+          ? current
+          : today,
+      firstDate: today,
+      lastDate: DateTime(today.year + 5, 12, 31),
+      helpText: 'Pilih tanggal jatuh tempo',
+      cancelText: 'Batal',
+      confirmText: 'Pilih',
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _dueDate = picked);
   }
 
   Future<void> _save() async {
@@ -88,7 +101,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
     if (!_formKey.currentState!.validate()) return;
     final dueDate = _dueDate;
     if (dueDate == null) {
-      _showSnack('Silakan pilih tanggal & bulan pada "Ingatkan Pada"');
+      _showSnack('Silakan pilih tanggal pada "Ingatkan Pada"');
       return;
     }
     if (_offsets.isEmpty) {
@@ -110,6 +123,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
       repeatEvery: every,
       repeatUnit: unit,
       dueDate: dueDate,
+      // Tanggal yang dipilih (mis. 31) jadi acuan perulangan bulanan, supaya
+      // bulan pendek (28 Feb) tidak menggeser tanggal bulan-bulan berikutnya.
+      anchorDay: unit == RepeatUnit.bulan ? dueDate.day : null,
       reminderOffsets: offsets,
       estimatedCost: parseRupiah(_costCtrl.text) ?? 0,
       paymentMethod: _paymentCtrl.text.trim(),
@@ -482,65 +498,35 @@ class _AddBillScreenState extends State<AddBillScreen> {
     );
   }
 
-  /// "Ingatkan Pada": pilih tanggal (1-31) & bulan — tanpa tahun.
+  /// "Ingatkan Pada": satu kolom yang membuka kalender.
   Widget _reminderSection() {
     final due = _dueDate;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<int>(
-                initialValue: _reminderDay,
-                isExpanded: true,
-                hint: const Text('Pilih tanggal'),
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                items: List.generate(31, (i) => i + 1)
-                    .map(
-                      (d) =>
-                          DropdownMenuItem(value: d, child: Text('Tanggal $d')),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _reminderDay = v),
+        InkWell(
+          borderRadius: AppRadius.br,
+          onTap: _pickDueDate,
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.calendar_month_outlined),
+              suffixIcon: Icon(Icons.arrow_drop_down),
+            ),
+            child: Text(
+              due == null ? 'Pilih tanggal' : Formatters.tanggal(due),
+              style: TextStyle(
+                fontSize: 16,
+                color: due == null ? AppColors.hint : AppColors.textDark,
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: DropdownButtonFormField<int>(
-                initialValue: _reminderMonth,
-                isExpanded: true,
-                hint: const Text('Pilih bulan'),
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                items: List.generate(12, (i) => i + 1)
-                    .map(
-                      (m) => DropdownMenuItem(
-                        value: m,
-                        child: Text(Formatters.namaBulan(m)),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _reminderMonth = v),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 8),
         if (due == null)
           const Padding(
             padding: EdgeInsets.only(left: 4),
             child: Text(
-              'Pilih tanggal & bulan pengingat',
+              'Pilih tanggal jatuh tempo pertama',
               style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
           )
@@ -551,7 +537,6 @@ class _AddBillScreenState extends State<AddBillScreen> {
   }
 
   Widget _reminderSummary(DateTime due) {
-    final day = _reminderDay!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -568,7 +553,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Setiap Tanggal $day',
+                  'Diulang $_repeatLabel',
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     color: AppColors.primaryDark,
@@ -582,7 +567,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
                     color: AppColors.textMuted,
                   ),
                 ),
-                if (day > 28) ...[
+                if (_repeatsMonthly && due.day > 28) ...[
                   const SizedBox(height: 2),
                   const Text(
                     'Di bulan yang lebih pendek, pengingat jatuh pada tanggal '

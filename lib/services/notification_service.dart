@@ -4,6 +4,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/bill.dart';
+import 'schedule_plan.dart';
 
 /// Tingkat urgensi notifikasi (Barbell System).
 enum _Tier { low, medium, high }
@@ -40,7 +41,7 @@ class NotificationService {
   List<Bill>? _pendingBills;
 
   /// Rantai penjadwalan, supaya dua pemanggilan tidak saling sisip. Tanpa ini,
-  /// `cancelAll()` milik proses kedua bisa menghapus jadwal yang baru saja
+  /// pembersihan milik proses kedua bisa menghapus jadwal yang baru saja
   /// ditulis proses pertama.
   Future<void> _scheduleChain = Future<void>.value();
 
@@ -48,10 +49,6 @@ class NotificationService {
   static const String _chLow = 'reminder_low';
   static const String _chMedium = 'reminder_medium';
   static const String _chHigh = 'reminder_high';
-
-  // Notifikasi dikirim pukul 08:00 waktu lokal pada hari pengingat.
-  static const int _fireHour = 8;
-  static const int _fireMinute = 0;
 
   /// Inisialisasi plugin + zona waktu + channel + izin.
   ///
@@ -181,25 +178,41 @@ class NotificationService {
     // Belum ada snapshot: jangan hapus jadwal yang sudah ada.
     if (bills == null) return;
 
-    await _plugin.cancelAll();
+    final plan = SchedulePlan.build(bills, DateTime.now());
+    await _cleanUp(plan);
 
-    final now = DateTime.now();
-    for (final bill in bills) {
-      for (final offset in bill.reminderOffsets) {
-        final fireDate = _fireDateFor(bill.dueDate, offset);
-        if (fireDate.isBefore(now)) continue; // lewat, lewati
-        try {
-          await _scheduleOne(bill, offset, fireDate);
-        } catch (_) {
-          // Satu tagihan gagal tidak boleh menggagalkan tagihan lainnya.
-        }
+    // zonedSchedule dengan id yang sama menimpa jadwal lama, jadi aman
+    // dipanggil ulang untuk yang tidak berubah.
+    for (final reminder in plan.upcoming.values) {
+      try {
+        await _scheduleOne(reminder);
+      } catch (_) {
+        // Satu tagihan gagal tidak boleh menggagalkan tagihan lainnya.
       }
     }
   }
 
-  DateTime _fireDateFor(DateTime dueDate, int offset) {
-    final d = dueDate.subtract(Duration(days: offset));
-    return DateTime(d.year, d.month, d.day, _fireHour, _fireMinute);
+  /// Bersihkan HANYA yang basi — bukan `cancelAll()`, supaya notifikasi yang
+  /// sudah tampil dan masih berlaku (mis. H-1 sticky tagihan lain) tidak ikut
+  /// hilang setiap kali data berubah atau aplikasi dibuka.
+  Future<void> _cleanUp(SchedulePlan plan) async {
+    try {
+      final pending = await _plugin.pendingNotificationRequests();
+      for (final id in plan.pendingToCancel(pending.map((r) => r.id))) {
+        await _plugin.cancel(id: id);
+      }
+    } catch (_) {
+      // Gagal membersihkan tidak boleh menghalangi penjadwalan.
+    }
+    try {
+      final active = await _plugin.getActiveNotifications();
+      final ids = active.map((n) => n.id).whereType<int>();
+      for (final id in plan.activeToCancel(ids)) {
+        await _plugin.cancel(id: id);
+      }
+    } catch (_) {
+      // getActiveNotifications bisa tidak didukung di platform tertentu.
+    }
   }
 
   _Tier _tierFor(int offset) {
@@ -208,10 +221,11 @@ class NotificationService {
     return _Tier.high;
   }
 
-  int _notifId(String billId, int offset) =>
-      (Object.hash(billId, offset)) & 0x7fffffff;
-
-  Future<void> _scheduleOne(Bill bill, int offset, DateTime fireDate) async {
+  Future<void> _scheduleOne(PlannedReminder reminder) async {
+    final bill = reminder.bill;
+    final offset = reminder.offset;
+    final id = reminder.id;
+    final fireDate = reminder.fireDate;
     final tier = _tierFor(offset);
     final details = _detailsFor(tier);
     final tzTime = tz.TZDateTime.from(fireDate, tz.local);
@@ -225,7 +239,7 @@ class NotificationService {
 
     try {
       await _plugin.zonedSchedule(
-        id: _notifId(bill.id, offset),
+        id: id,
         title: title,
         body: body,
         scheduledDate: tzTime,
@@ -236,7 +250,7 @@ class NotificationService {
     } on Exception {
       // Fallback bila izin alarm presisi tidak diberikan (Android 12+).
       await _plugin.zonedSchedule(
-        id: _notifId(bill.id, offset),
+        id: id,
         title: title,
         body: body,
         scheduledDate: tzTime,

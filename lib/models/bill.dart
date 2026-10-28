@@ -43,6 +43,17 @@ class Bill {
   /// "Ingatkan Pada": tanggal jatuh tempo berikutnya.
   final DateTime dueDate;
 
+  /// Tanggal yang dimaksud pengguna untuk perulangan bulanan (1-31).
+  ///
+  /// Perlu disimpan terpisah dari [dueDate]: begitu jatuh tempo terpotong ke
+  /// bulan yang lebih pendek (31 Jan -> 28 Feb), `dueDate.day` sudah 28 dan
+  /// tanggal asli 31 tidak bisa dipulihkan darinya. Tanpa ini, tagihan
+  /// tanggal 31 melorot ke tanggal 28 selamanya.
+  ///
+  /// null = dokumen lama atau perulangan bukan bulanan; dalam kasus itu
+  /// dipakai `dueDate.day` seperti sebelumnya.
+  final int? anchorDay;
+
   /// H-berapa saja pengingat dikirim, contoh [7, 3, 1].
   final List<int> reminderOffsets;
 
@@ -71,6 +82,7 @@ class Bill {
     required this.repeatEvery,
     required this.repeatUnit,
     required this.dueDate,
+    this.anchorDay,
     required this.reminderOffsets,
     required this.estimatedCost,
     required this.paymentMethod,
@@ -136,12 +148,20 @@ class Bill {
   }
 
   /// Majukan [from] sebanyak [months] bulan.
+  ///
+  /// Tanggal yang dituju adalah [anchorDay] (tanggal asli), bukan `from.day`,
+  /// supaya bulan pendek tidak menggeser tanggalnya untuk bulan-bulan
+  /// berikutnya: 31 Jan -> 28 Feb -> 31 Mar, bukan 28 Mar.
   DateTime _addMonths(DateTime from, int months) {
     final total = from.month - 1 + months;
+    final target = anchorDay;
+    final day = (target != null && target >= 1 && target <= 31)
+        ? target
+        : from.day;
     return dateInMonth(
       from.year + total ~/ 12,
       total % 12 + 1,
-      from.day,
+      day,
       hour: from.hour,
       minute: from.minute,
     );
@@ -169,6 +189,7 @@ class Bill {
     int? repeatEvery,
     RepeatUnit? repeatUnit,
     DateTime? dueDate,
+    int? anchorDay,
     List<int>? reminderOffsets,
     double? estimatedCost,
     String? paymentMethod,
@@ -183,6 +204,7 @@ class Bill {
       repeatEvery: repeatEvery ?? this.repeatEvery,
       repeatUnit: repeatUnit ?? this.repeatUnit,
       dueDate: dueDate ?? this.dueDate,
+      anchorDay: anchorDay ?? this.anchorDay,
       reminderOffsets: reminderOffsets ?? this.reminderOffsets,
       estimatedCost: estimatedCost ?? this.estimatedCost,
       paymentMethod: paymentMethod ?? this.paymentMethod,
@@ -200,6 +222,7 @@ class Bill {
     'repeatEvery': repeatEvery,
     'repeatUnit': repeatUnit.index,
     'dueDate': dueDate.toIso8601String(),
+    'anchorDay': anchorDay,
     'reminderOffsets': reminderOffsets,
     'estimatedCost': estimatedCost,
     'paymentMethod': paymentMethod,
@@ -218,6 +241,8 @@ class Bill {
       repeatEvery: map['repeatEvery'] as int,
       repeatUnit: RepeatUnit.values[map['repeatUnit'] as int],
       dueDate: DateTime.parse(map['dueDate'] as String),
+      // Dokumen lama belum punya field ini -> null (pakai dueDate.day).
+      anchorDay: map['anchorDay'] as int?,
       reminderOffsets: (map['reminderOffsets'] as List)
           .map((e) => e as int)
           .toList(),

@@ -1,0 +1,24 @@
+diff --git a/test/add_bill_date_test.dart b/test/add_bill_date_test.dart
+index ed7af16..3893a27 100644
+--- a/test/add_bill_date_test.dart
++++ b/test/add_bill_date_test.dart
+@@ -17,11 +17,18 @@ Widget _host() => MaterialApp(
+ 
+ Future<void> _showField(WidgetTester tester) async {
+   await tester.pumpWidget(_host());
++  final field = find.text('Pilih tanggal');
++  // scrollUntilVisible berhenti begitu widget-nya sudah dibangun, padahal
++  // ListView membangun sedikit di luar layar (cacheExtent): kolomnya bisa saja
++  // masih di bawah batas layar uji (800x600) dan ketukan meleset.
++  // ensureVisible memastikan kolom benar-benar masuk ke area layar.
+   await tester.scrollUntilVisible(
+-    find.text('Pilih tanggal'),
++    field,
+     200,
+     scrollable: find.byType(Scrollable).first,
+   );
++  await tester.ensureVisible(field);
++  await tester.pumpAndSettle();
+ }
+ 
+ void main() {
