@@ -114,9 +114,9 @@ class Bill {
   /// Deskripsi perulangan, contoh: "30 Hari Sekali".
   String get repeatDescription => '$repeatEvery ${repeatUnit.label} Sekali';
 
-  /// Deskripsi offset pengingat, contoh: "H-7, H-3, H-1".
+  /// Deskripsi offset pengingat, contoh: "H-7, H-3, H-1, Hari-H".
   String get reminderDescription =>
-      reminderOffsets.map((d) => 'H-$d').join(', ');
+      reminderOffsets.map((d) => d == 0 ? 'Hari-H' : 'H-$d').join(', ');
 
   /// Tanggal jatuh tempo berikutnya setelah dibayar (maju satu periode).
   DateTime get nextDueDate => _advanceFrom(dueDate);
@@ -133,6 +133,47 @@ class Bill {
       guard++;
     }
     return next;
+  }
+
+  /// Batas pengaman putaran hitung [occurrencesUntil].
+  static const int _maxOccurrences = 1000;
+
+  /// Berapa kali item ini harus dibayar dari [now] sampai [end] (inklusif).
+  ///
+  /// Dipakai Burn-Rate: tagihan mingguan bisa jatuh tempo beberapa kali
+  /// sebelum gajian, dan tiap kalinya memakai uang yang sama.
+  ///
+  ///  * Jatuh tempo yang sedang menunggu ([dueDate]) dihitung SATU kali,
+  ///    juga bila sudah telat.
+  ///  * Periode telat yang terlewat TIDAK dihitung ulang: markAsPaid memajukan
+  ///    jatuh tempo ke periode pertama SETELAH hari ini ([nextDueDateAfter]),
+  ///    jadi satu pelunasan menutup semuanya.
+  ///  * Sesudah itu setiap periode yang jatuh sebelum atau tepat pada [end]
+  ///    ikut dihitung.
+  ///  * Cicilan ber-batas ([repeatLimit]) tidak dihitung melebihi sisanya.
+  ///
+  /// Mengembalikan 0 bila jatuh tempo berikutnya sudah melewati [end].
+  int occurrencesUntil(DateTime end, DateTime now) {
+    if (dueDate.isAfter(end)) return 0;
+
+    // Data rusak (periode 0) akan membuat putaran tak maju; hitung sekali.
+    if (repeatEvery <= 0) return 1;
+
+    var count = 1;
+    var next = nextDueDateAfter(now);
+    var guard = 0;
+    while (!next.isAfter(end) && guard < _maxOccurrences) {
+      count++;
+      next = _advanceFrom(next);
+      guard++;
+    }
+
+    final limit = repeatLimit;
+    if (limit != null) {
+      final sisa = remaining ?? limit;
+      if (count > sisa) count = sisa > 0 ? sisa : 0;
+    }
+    return count;
   }
 
   /// Majukan [from] sebanyak satu periode perulangan.

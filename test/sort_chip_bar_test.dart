@@ -71,7 +71,13 @@ void main() {
   });
 
   group('SortChipBar — perilaku', () {
-    testWidgets('menampilkan chip untuk setiap mode', (tester) async {
+    // Bilah ini berupa dropdown + tombol panah (bukan deretan chip), jadi
+    // hanya label mode yang AKTIF yang terlihat sebelum dropdown dibuka.
+    Finder dropdown() => find.byType(DropdownButton<BillSortMode>);
+
+    testWidgets('menampilkan label Urutkan dan mode yang sedang aktif', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _wrap(
           SortChipBar(
@@ -82,28 +88,30 @@ void main() {
         ),
       );
 
-      for (final mode in BillSortMode.values) {
-        expect(find.text(mode.label), findsOneWidget);
-      }
       expect(find.text('Urutkan:'), findsOneWidget);
+      expect(find.text(BillSortMode.jatuhTempo.label), findsOneWidget);
     });
 
-    testWidgets('panah arah hanya muncul di chip yang aktif', (tester) async {
+    testWidgets('membuka dropdown menampilkan semua mode', (tester) async {
       await tester.pumpWidget(
         _wrap(
           SortChipBar(
-            mode: BillSortMode.metode,
-            ascending: false,
+            mode: BillSortMode.jatuhTempo,
+            ascending: true,
             onSelect: (_) {},
           ),
         ),
       );
 
-      expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
-      expect(find.byIcon(Icons.arrow_upward), findsNothing);
+      await tester.tap(dropdown());
+      await tester.pumpAndSettle();
+
+      for (final mode in BillSortMode.values) {
+        expect(find.text(mode.label), findsWidgets);
+      }
     });
 
-    testWidgets('arah naik memakai panah ke atas', (tester) async {
+    testWidgets('panah arah naik memakai panah ke atas', (tester) async {
       await tester.pumpWidget(
         _wrap(
           SortChipBar(
@@ -118,22 +126,85 @@ void main() {
       expect(find.byIcon(Icons.arrow_downward), findsNothing);
     });
 
-    testWidgets('ketuk chip memanggil onSelect dengan mode itu', (
+    testWidgets('panah arah turun memakai panah ke bawah', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SortChipBar(
+            mode: BillSortMode.metode,
+            ascending: false,
+            onSelect: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_upward), findsNothing);
+    });
+
+    testWidgets('memilih mode lain di dropdown memanggil onSelect', (
       tester,
     ) async {
-      BillSortMode? tapped;
+      BillSortMode? dipilih;
       await tester.pumpWidget(
         _wrap(
           SortChipBar(
             mode: BillSortMode.jatuhTempo,
             ascending: true,
-            onSelect: (m) => tapped = m,
+            onSelect: (m) => dipilih = m,
           ),
         ),
       );
 
-      await tester.tap(find.text('Frekuensi Pengingat'));
-      expect(tapped, BillSortMode.frekuensi);
+      await tester.tap(dropdown());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Frekuensi Pengingat').last);
+      await tester.pumpAndSettle();
+
+      expect(dipilih, BillSortMode.frekuensi);
+    });
+
+    // Dropdown tetap memanggil onChanged saat item yang sama dipilih ulang;
+    // tanpa penjagaan di widget, arah urutan ikut terbalik tanpa disengaja.
+    testWidgets('memilih ulang mode yang aktif tidak memanggil onSelect', (
+      tester,
+    ) async {
+      BillSortMode? dipilih;
+      await tester.pumpWidget(
+        _wrap(
+          SortChipBar(
+            mode: BillSortMode.jatuhTempo,
+            ascending: true,
+            onSelect: (m) => dipilih = m,
+          ),
+        ),
+      );
+
+      await tester.tap(dropdown());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(BillSortMode.jatuhTempo.label).last);
+      await tester.pumpAndSettle();
+
+      expect(dipilih, isNull);
+    });
+
+    testWidgets('mengetuk panah memanggil onSelect dengan mode aktif', (
+      tester,
+    ) async {
+      BillSortMode? dipilih;
+      await tester.pumpWidget(
+        _wrap(
+          SortChipBar(
+            mode: BillSortMode.metode,
+            ascending: true,
+            onSelect: (m) => dipilih = m,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+
+      // Mode yang sama diketuk lagi = membalik arah (lihat nextSortState).
+      expect(dipilih, BillSortMode.metode);
     });
   });
 }

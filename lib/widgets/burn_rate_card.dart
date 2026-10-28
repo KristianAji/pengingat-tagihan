@@ -115,6 +115,8 @@ class BurnRateCard extends StatelessWidget {
         return 'Keuanganmu aman sampai ${Formatters.tanggal(r.nextPayday)}.';
       case BurnRateStatus.terbatas:
         return 'Hati-hati, anggaran harian cukup terbatas.';
+      case BurnRateStatus.kritis:
+        return 'Sisa uang harian sangat tipis. Kurangi belanja non-wajib.';
       case BurnRateStatus.overbudget:
         return 'Tagihan melebihi pemasukan. Tunda belanja non-wajib!';
     }
@@ -165,6 +167,7 @@ class BurnRateCard extends StatelessWidget {
         return AppColors.belanja; // hijau
       case BurnRateStatus.terbatas:
         return AppColors.warning; // kuning/oranye
+      case BurnRateStatus.kritis:
       case BurnRateStatus.overbudget:
         return AppColors.danger; // merah
     }

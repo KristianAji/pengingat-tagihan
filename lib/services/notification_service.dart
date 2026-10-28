@@ -4,6 +4,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../models/bill.dart';
+import '../utils/formatters.dart';
 import 'schedule_plan.dart';
 
 /// Tingkat urgensi notifikasi (Barbell System).
@@ -15,6 +16,7 @@ enum _Tier { low, medium, high }
 ///   H-7  -> Low    (IMPORTANCE_LOW, diam, tanpa suara/getar)
 ///   H-3  -> Medium (IMPORTANCE_DEFAULT, suara/getar standar)
 ///   H-1/H-> High   (IMPORTANCE_HIGH, heads-up + sticky/ongoing)
+///   Telat   -> High   (harian pukul 08:00 sampai dilunasi, tidak sticky)
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -226,39 +228,62 @@ class NotificationService {
     final offset = reminder.offset;
     final id = reminder.id;
     final fireDate = reminder.fireDate;
-    final tier = _tierFor(offset);
-    final details = _detailsFor(tier);
+    final overdue = reminder.isOverdue;
+    final tier = overdue ? _Tier.high : _tierFor(offset);
+    final details = overdue ? _overdueDetails() : _detailsFor(tier);
     final tzTime = tz.TZDateTime.from(fireDate, tz.local);
 
-    final String title = tier == _Tier.high
-        ? '⚠️ ${bill.name} segera jatuh tempo'
-        : 'Pengingat: ${bill.name}';
-    final String body = offset <= 0
-        ? 'Jatuh tempo hari ini. Jangan lupa dibayar.'
-        : 'Jatuh tempo dalam $offset hari lagi (H-$offset).';
+    final String title;
+    final String body;
+    if (overdue) {
+      title = '⏰ ${bill.name} sudah lewat jatuh tempo';
+      // Teks harus berlaku untuk SETIAP pengulangan, jadi tanpa hitungan hari.
+      body =
+          'Jatuh tempo ${Formatters.tanggal(bill.dueDate)} dan belum dilunasi. '
+          'Segera bayar atau tandai lunas.';
+    } else if (offset <= 0) {
+      title = '⚠️ ${bill.name} jatuh tempo hari ini';
+      body = 'Jatuh tempo hari ini. Jangan lupa dibayar.';
+    } else {
+      title = tier == _Tier.high
+          ? '⚠️ ${bill.name} segera jatuh tempo'
+          : 'Pengingat: ${bill.name}';
+      body = 'Jatuh tempo dalam $offset hari lagi (H-$offset).';
+    }
+
+    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tzTime,
+      notificationDetails: details,
+      androidScheduleMode: mode,
+      payload: bill.id,
+      // Pengingat telat berulang tiap hari pada jam yang sama; pengingat H-
+      // cukup sekali.
+      matchDateTimeComponents: overdue ? DateTimeComponents.time : null,
+    );
 
     try {
-      await _plugin.zonedSchedule(
-        id: id,
-        title: title,
-        body: body,
-        scheduledDate: tzTime,
-        notificationDetails: details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: bill.id,
-      );
+      await schedule(AndroidScheduleMode.exactAllowWhileIdle);
     } on Exception {
       // Fallback bila izin alarm presisi tidak diberikan (Android 12+).
-      await _plugin.zonedSchedule(
-        id: id,
-        title: title,
-        body: body,
-        scheduledDate: tzTime,
-        notificationDetails: details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        payload: bill.id,
-      );
+      await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
     }
+  }
+
+  /// Pengingat tagihan telat: terlihat jelas (heads-up) tapi TIDAK sticky.
+  /// Notifikasi H-1/Hari-H sudah sticky; yang berulang tiap hari tidak boleh
+  /// ikut menempel dan menumpuk.
+  NotificationDetails _overdueDetails() {
+    return const NotificationDetails(
+      android: AndroidNotificationDetails(
+        _chHigh,
+        'Kritis (H-1 / Hari H)',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    );
   }
 
   NotificationDetails _detailsFor(_Tier tier) {

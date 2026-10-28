@@ -1,0 +1,448 @@
+diff --git a/lib/models/bill.dart b/lib/models/bill.dart
+index b1ac82a..fcb00ba 100644
+--- a/lib/models/bill.dart
++++ b/lib/models/bill.dart
+@@ -114,9 +114,9 @@ class Bill {
+   /// Deskripsi perulangan, contoh: "30 Hari Sekali".
+   String get repeatDescription => '$repeatEvery ${repeatUnit.label} Sekali';
+ 
+-  /// Deskripsi offset pengingat, contoh: "H-7, H-3, H-1".
++  /// Deskripsi offset pengingat, contoh: "H-7, H-3, H-1, Hari-H".
+   String get reminderDescription =>
+-      reminderOffsets.map((d) => 'H-$d').join(', ');
++      reminderOffsets.map((d) => d == 0 ? 'Hari-H' : 'H-$d').join(', ');
+ 
+   /// Tanggal jatuh tempo berikutnya setelah dibayar (maju satu periode).
+   DateTime get nextDueDate => _advanceFrom(dueDate);
+diff --git a/lib/screens/about_screen.dart b/lib/screens/about_screen.dart
+index 3871799..b8159e4 100644
+--- a/lib/screens/about_screen.dart
++++ b/lib/screens/about_screen.dart
+@@ -89,7 +89,7 @@ class AboutScreen extends StatelessWidget {
+     const features = [
+       'Catat tagihan & belanja rutin',
+       'Atur frekuensi pengulangan sendiri atau via preset',
+-      'Pengingat H-7, H-3, H-1 sebelum jatuh tempo',
++      'Pengingat H-7, H-3, H-1, Hari-H, dan tiap hari bila telat',
+       'Batas perulangan (contoh cicilan 12x)',
+       'Tombol Lunasi & riwayat pembayaran',
+     ];
+diff --git a/lib/screens/add_bill_screen.dart b/lib/screens/add_bill_screen.dart
+index 2daa24f..5220f36 100644
+--- a/lib/screens/add_bill_screen.dart
++++ b/lib/screens/add_bill_screen.dart
+@@ -105,7 +105,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
+       return;
+     }
+     if (_offsets.isEmpty) {
+-      _showSnack('Pilih minimal satu waktu pengingat (H-7/H-3/H-1)');
++      _showSnack('Pilih minimal satu waktu pengingat (H-7/H-3/H-1/Hari-H)');
+       return;
+     }
+ 
+@@ -215,7 +215,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
+             _label('Ingatkan Pada'),
+             _reminderSection(),
+             const SizedBox(height: 16),
+-            _label('Ingatkan Sebelum Hari-H'),
++            _label('Waktu Pengingat'),
+             _offsetSelector(),
+             const SizedBox(height: 16),
+             _label('Estimasi Biaya'),
+@@ -583,11 +583,13 @@ class _AddBillScreenState extends State<AddBillScreen> {
+     );
+   }
+ 
+-  /// Tombol H-7/H-3/H-1: biru penuh saat dipilih, putih saat tidak.
++  /// Tombol H-7/H-3/H-1/Hari-H: biru penuh saat dipilih, putih saat tidak.
+   Widget _offsetSelector() {
+     return Wrap(
+       spacing: 8,
+-      children: [7, 3, 1].map((d) {
++      // Empat tombol bisa turun ke baris kedua di layar sempit.
++      runSpacing: 8,
++      children: [7, 3, 1, 0].map((d) {
+         final selected = _offsets.contains(d);
+         return GestureDetector(
+           onTap: () =>
+@@ -602,7 +604,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
+               ),
+             ),
+             child: Text(
+-              'H-$d',
++              d == 0 ? 'Hari-H' : 'H-$d',
+               style: TextStyle(
+                 fontWeight: FontWeight.w700,
+                 color: selected ? Colors.white : AppColors.textMuted,
+diff --git a/lib/services/notification_service.dart b/lib/services/notification_service.dart
+index a718d84..ecc5e10 100644
+--- a/lib/services/notification_service.dart
++++ b/lib/services/notification_service.dart
+@@ -4,6 +4,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
+ import 'package:timezone/timezone.dart' as tz;
+ 
+ import '../models/bill.dart';
++import '../utils/formatters.dart';
+ import 'schedule_plan.dart';
+ 
+ /// Tingkat urgensi notifikasi (Barbell System).
+@@ -15,6 +16,7 @@ enum _Tier { low, medium, high }
+ ///   H-7  -> Low    (IMPORTANCE_LOW, diam, tanpa suara/getar)
+ ///   H-3  -> Medium (IMPORTANCE_DEFAULT, suara/getar standar)
+ ///   H-1/H-> High   (IMPORTANCE_HIGH, heads-up + sticky/ongoing)
++///   Telat   -> High   (harian pukul 08:00 sampai dilunasi, tidak sticky)
+ class NotificationService {
+   NotificationService._();
+   static final NotificationService instance = NotificationService._();
+@@ -226,41 +228,64 @@ class NotificationService {
+     final offset = reminder.offset;
+     final id = reminder.id;
+     final fireDate = reminder.fireDate;
+-    final tier = _tierFor(offset);
+-    final details = _detailsFor(tier);
++    final overdue = reminder.isOverdue;
++    final tier = overdue ? _Tier.high : _tierFor(offset);
++    final details = overdue ? _overdueDetails() : _detailsFor(tier);
+     final tzTime = tz.TZDateTime.from(fireDate, tz.local);
+ 
+-    final String title = tier == _Tier.high
+-        ? '⚠️ ${bill.name} segera jatuh tempo'
+-        : 'Pengingat: ${bill.name}';
+-    final String body = offset <= 0
+-        ? 'Jatuh tempo hari ini. Jangan lupa dibayar.'
+-        : 'Jatuh tempo dalam $offset hari lagi (H-$offset).';
++    final String title;
++    final String body;
++    if (overdue) {
++      title = '⏰ ${bill.name} sudah lewat jatuh tempo';
++      // Teks harus berlaku untuk SETIAP pengulangan, jadi tanpa hitungan hari.
++      body =
++          'Jatuh tempo ${Formatters.tanggal(bill.dueDate)} dan belum dilunasi. '
++          'Segera bayar atau tandai lunas.';
++    } else if (offset <= 0) {
++      title = '⚠️ ${bill.name} jatuh tempo hari ini';
++      body = 'Jatuh tempo hari ini. Jangan lupa dibayar.';
++    } else {
++      title = tier == _Tier.high
++          ? '⚠️ ${bill.name} segera jatuh tempo'
++          : 'Pengingat: ${bill.name}';
++      body = 'Jatuh tempo dalam $offset hari lagi (H-$offset).';
++    }
++
++    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
++      id: id,
++      title: title,
++      body: body,
++      scheduledDate: tzTime,
++      notificationDetails: details,
++      androidScheduleMode: mode,
++      payload: bill.id,
++      // Pengingat telat berulang tiap hari pada jam yang sama; pengingat H-
++      // cukup sekali.
++      matchDateTimeComponents: overdue ? DateTimeComponents.time : null,
++    );
+ 
+     try {
+-      await _plugin.zonedSchedule(
+-        id: id,
+-        title: title,
+-        body: body,
+-        scheduledDate: tzTime,
+-        notificationDetails: details,
+-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+-        payload: bill.id,
+-      );
++      await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+     } on Exception {
+       // Fallback bila izin alarm presisi tidak diberikan (Android 12+).
+-      await _plugin.zonedSchedule(
+-        id: id,
+-        title: title,
+-        body: body,
+-        scheduledDate: tzTime,
+-        notificationDetails: details,
+-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+-        payload: bill.id,
+-      );
++      await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+     }
+   }
+ 
++  /// Pengingat tagihan telat: terlihat jelas (heads-up) tapi TIDAK sticky.
++  /// Notifikasi H-1/Hari-H sudah sticky; yang berulang tiap hari tidak boleh
++  /// ikut menempel dan menumpuk.
++  NotificationDetails _overdueDetails() {
++    return const NotificationDetails(
++      android: AndroidNotificationDetails(
++        _chHigh,
++        'Kritis (H-1 / Hari H)',
++        importance: Importance.high,
++        priority: Priority.high,
++      ),
++    );
++  }
++
+   NotificationDetails _detailsFor(_Tier tier) {
+     switch (tier) {
+       case _Tier.low:
+diff --git a/lib/services/schedule_plan.dart b/lib/services/schedule_plan.dart
+index 896a3f6..a5e118e 100644
+--- a/lib/services/schedule_plan.dart
++++ b/lib/services/schedule_plan.dart
+@@ -12,9 +12,13 @@ class PlannedReminder {
+   final int id;
+   final Bill bill;
+ 
+-  /// H-berapa (7, 3, 1, ...).
++  /// H-berapa (7, 3, 1, atau 0 = Hari-H). Nilai [SchedulePlan.overdueOffset]
++  /// menandai pengingat HARIAN untuk tagihan yang sudah lewat jatuh tempo.
+   final int offset;
+   final DateTime fireDate;
++
++  /// true bila ini pengingat harian "tagihan telat", bukan pengingat H-.
++  bool get isOverdue => offset == SchedulePlan.overdueOffset;
+ }
+ 
+ /// Rencana pengingat dari daftar tagihan saat ini — murni (tanpa plugin),
+@@ -31,6 +35,14 @@ class PlannedReminder {
+ ///    ini; kalau tampil di bilah notifikasi, biarkan.
+ ///  * selain keduanya — basi (tagihan dilunasi/dihapus, jatuh tempo
+ ///    bergeser, H- dihilangkan); dibatalkan.
++///
++/// Selain pengingat H-, setiap tagihan punya SATU pengingat "telat": notifikasi
++/// harian pukul 08:00 yang mulai sehari setelah jatuh tempo. Ia sudah
++/// dijadwalkan sebelum tagihan telat (jadi tetap berbunyi walau aplikasi tidak
++/// dibuka), dan berhenti sendiri begitu tagihan dilunasi, karena jatuh tempo
++/// yang maju membuat id-nya basi lalu dibatalkan. Itu sebabnya id telat bisa
++/// berada di [upcoming] sekaligus [fired]: masih terjadwal berulang, dan
++/// sebagian notifikasinya mungkin sedang tampil.
+ class SchedulePlan {
+   SchedulePlan._(this.upcoming, this.fired);
+ 
+@@ -44,6 +56,10 @@ class SchedulePlan {
+   static const int fireHour = 8;
+   static const int fireMinute = 0;
+ 
++  /// "Offset" khusus untuk pengingat harian tagihan telat. Negatif supaya
++  /// tidak pernah sama dengan H-n (0 = Hari-H, 1, 3, 7).
++  static const int overdueOffset = -1;
++
+   /// Id notifikasi untuk satu pengingat.
+   ///
+   /// Tanggal jatuh tempo ikut dihitung, jadi tiap PERIODE punya id sendiri.
+@@ -61,6 +77,27 @@ class SchedulePlan {
+     return DateTime(d.year, d.month, d.day, fireHour, fireMinute);
+   }
+ 
++  /// Kapan pengingat telat pertama berbunyi untuk [dueDate].
++  ///
++  /// Normalnya pukul 08:00 sehari setelah jatuh tempo. Bila itu sudah lewat
++  /// (tagihan sudah telat saat jadwal dibuat), dipakai pukul 08:00 berikutnya
++  /// — hari ini kalau [now] belum 08:00, selain itu besok. Notifikasi harian
++  /// lalu berulang tiap hari pada jam yang sama.
++  static DateTime overdueFireDate(DateTime dueDate, DateTime now) {
++    final pertama = DateTime(
++      dueDate.year,
++      dueDate.month,
++      dueDate.day + 1,
++      fireHour,
++      fireMinute,
++    );
++    if (!pertama.isBefore(now)) return pertama;
++
++    final hariIni = DateTime(now.year, now.month, now.day, fireHour, fireMinute);
++    if (hariIni.isAfter(now)) return hariIni;
++    return DateTime(now.year, now.month, now.day + 1, fireHour, fireMinute);
++  }
++
+   factory SchedulePlan.build(List<Bill> bills, DateTime now) {
+     final upcoming = <int, PlannedReminder>{};
+     final fired = <int>{};
+@@ -79,6 +116,24 @@ class SchedulePlan {
+           );
+         }
+       }
++
++      // Pengingat telat: selalu dijadwalkan, terlepas dari H- yang dipilih.
++      final overdueId = notifId(bill.id, overdueOffset, bill.dueDate);
++      final mulai = DateTime(
++        bill.dueDate.year,
++        bill.dueDate.month,
++        bill.dueDate.day + 1,
++        fireHour,
++        fireMinute,
++      );
++      upcoming[overdueId] = PlannedReminder(
++        id: overdueId,
++        bill: bill,
++        offset: overdueOffset,
++        fireDate: overdueFireDate(bill.dueDate, now),
++      );
++      // Sudah mulai berbunyi: notifikasi yang sedang tampil jangan dihapus.
++      if (mulai.isBefore(now)) fired.add(overdueId);
+     }
+     return SchedulePlan._(upcoming, fired);
+   }
+diff --git a/test/schedule_plan_test.dart b/test/schedule_plan_test.dart
+index b0636ae..4043b94 100644
+--- a/test/schedule_plan_test.dart
++++ b/test/schedule_plan_test.dart
+@@ -31,6 +31,9 @@ Bill _bill(
+ int _id(String billId, int offset, DateTime due) =>
+     SchedulePlan.notifId(billId, offset, due);
+ 
++int _overdueId(String billId, DateTime due) =>
++    SchedulePlan.notifId(billId, SchedulePlan.overdueOffset, due);
++
+ void main() {
+   group('pembagian pengingat', () {
+     test('yang waktunya sudah lewat = fired, sisanya = upcoming', () {
+@@ -40,7 +43,11 @@ void main() {
+       final plan = SchedulePlan.build([_bill('a', due)], _now);
+ 
+       expect(plan.fired, {_id('a', 7, due), _id('a', 3, due)});
+-      expect(plan.upcoming.keys, [_id('a', 1, due)]);
++      // Selain H-1, tiap tagihan selalu punya pengingat harian "telat".
++      expect(
++        plan.upcoming.keys,
++        unorderedEquals([_id('a', 1, due), _overdueId('a', due)]),
++      );
+       expect(plan.upcoming[_id('a', 1, due)]!.offset, 1);
+       expect(
+         plan.upcoming[_id('a', 1, due)]!.fireDate,
+@@ -172,4 +179,119 @@ void main() {
+       expect(plan.activeToCancel([999]), {999});
+     });
+   });
++
++  group('pengingat Hari-H', () {
++    test('offset 0 dijadwalkan pukul 08:00 pada hari jatuh tempo', () {
++      final due = DateTime(2026, 10, 27);
++      final plan = SchedulePlan.build([
++        _bill('a', due, offsets: const [0]),
++      ], _now);
++
++      final r = plan.upcoming[_id('a', 0, due)]!;
++      expect(r.offset, 0);
++      expect(r.isOverdue, isFalse);
++      expect(r.fireDate, DateTime(2026, 10, 27, 8, 0));
++    });
++
++    test('Hari-H yang jamnya sudah lewat dianggap fired, bukan upcoming', () {
++      final due = DateTime(2026, 10, 25); // hari ini; 08:00 sudah lewat
++      final plan = SchedulePlan.build([
++        _bill('a', due, offsets: const [0]),
++      ], _now);
++
++      expect(plan.fired, contains(_id('a', 0, due)));
++      expect(plan.upcoming.containsKey(_id('a', 0, due)), isFalse);
++    });
++  });
++
++  group('pengingat harian untuk tagihan telat', () {
++    test('sebelum telat sudah terjadwal, mulai pukul 08:00 sehari sesudahnya', () {
++      final due = DateTime(2026, 10, 27);
++      final plan = SchedulePlan.build([
++        _bill('a', due, offsets: const [1]),
++      ], _now);
++
++      final r = plan.upcoming[_overdueId('a', due)]!;
++      expect(r.isOverdue, isTrue);
++      expect(r.fireDate, DateTime(2026, 10, 28, 8, 0));
++      expect(plan.fired, isNot(contains(_overdueId('a', due))));
++    });
++
++    test('jatuh tempo hari ini: pengingat telat mulai besok', () {
++      final due = DateTime(2026, 10, 25);
++      final plan = SchedulePlan.build([_bill('a', due)], _now);
++
++      expect(
++        plan.upcoming[_overdueId('a', due)]!.fireDate,
++        DateTime(2026, 10, 26, 8, 0),
++      );
++      expect(plan.fired, isNot(contains(_overdueId('a', due))));
++    });
++
++    test('sudah telat & lewat 08:00: berikutnya besok 08:00, dan tampil = fired', () {
++      final due = DateTime(2026, 10, 20);
++      final plan = SchedulePlan.build([_bill('a', due)], _now); // 25 Okt 09:00
++
++      expect(
++        plan.upcoming[_overdueId('a', due)]!.fireDate,
++        DateTime(2026, 10, 26, 8, 0),
++      );
++      expect(plan.fired, contains(_overdueId('a', due)));
++    });
++
++    test('sudah telat & belum 08:00: berikutnya hari ini pukul 08:00', () {
++      final due = DateTime(2026, 10, 20);
++      final pagi = DateTime(2026, 10, 25, 7, 0);
++      final plan = SchedulePlan.build([_bill('a', due)], pagi);
++
++      expect(
++        plan.upcoming[_overdueId('a', due)]!.fireDate,
++        DateTime(2026, 10, 25, 8, 0),
++      );
++    });
++
++    test('overdueFireDate tidak pernah mengembalikan waktu yang sudah lewat', () {
++      final due = DateTime(2026, 1, 10);
++      for (final jam in [0, 7, 8, 9, 23]) {
++        final now = DateTime(2026, 10, 25, jam, 30);
++        expect(SchedulePlan.overdueFireDate(due, now).isAfter(now), isTrue);
++      }
++    });
++
++    test('melunasi menggeser jatuh tempo: jadwal & notifikasi telat lama basi', () {
++      final lama = DateTime(2026, 10, 20);
++      final sebelum = SchedulePlan.build([_bill('a', lama)], _now);
++      final sesudah = SchedulePlan.build([
++        _bill('a', DateTime(2026, 11, 20)),
++      ], _now);
++
++      expect(
++        sesudah.pendingToCancel(sebelum.upcoming.keys),
++        contains(_overdueId('a', lama)),
++      );
++      expect(
++        sesudah.activeToCancel([_overdueId('a', lama)]),
++        {_overdueId('a', lama)},
++      );
++    });
++
++    test('notifikasi telat yang sedang tampil dipertahankan selama belum lunas', () {
++      final due = DateTime(2026, 10, 20);
++      final plan = SchedulePlan.build([_bill('a', due)], _now);
++
++      expect(plan.activeToCancel([_overdueId('a', due)]), isEmpty);
++    });
++
++    test('id telat tidak bentrok dengan id H- mana pun', () {
++      final due = DateTime(2026, 10, 27);
++      final ids = {
++        _id('a', 7, due),
++        _id('a', 3, due),
++        _id('a', 1, due),
++        _id('a', 0, due),
++        _overdueId('a', due),
++      };
++      expect(ids, hasLength(5));
++    });
++  });
+ }
+diff --git a/test/widget_test.dart b/test/widget_test.dart
+index 2842d01..d8c1adc 100644
+--- a/test/widget_test.dart
++++ b/test/widget_test.dart
+@@ -81,6 +81,11 @@ void main() {
+     expect(bill.reminderDescription, 'H-7, H-3, H-1');
+   });
+ 
++  test('Bill.reminderDescription menamai offset 0 sebagai Hari-H', () {
++    final bill = _sampleBill().copyWith(reminderOffsets: const [7, 0]);
++    expect(bill.reminderDescription, 'H-7, Hari-H');
++  });
++
+   test('Bill toMap/fromMap round-trip', () {
+     final bill = _sampleBill();
+     final restored = Bill.fromMap(bill.toMap());

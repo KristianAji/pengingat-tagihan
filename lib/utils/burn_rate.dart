@@ -1,8 +1,12 @@
 import '../models/bill.dart';
 import '../models/user_profile.dart';
 
-/// Status indikator Budget Burn-Rate.
-enum BurnRateStatus { aman, terbatas, overbudget }
+/// Status indikator Budget Burn-Rate, dari yang paling longgar:
+///  * aman       — batas harian >= [BurnRateCalculator.batasAman]
+///  * terbatas   — di antara [BurnRateCalculator.batasTerbatas] dan batas aman
+///  * kritis     — masih positif tapi di bawah [BurnRateCalculator.batasTerbatas]
+///  * overbudget — tagihan wajib melebihi pemasukan (Free Cash Flow negatif)
+enum BurnRateStatus { aman, terbatas, kritis, overbudget }
 
 extension BurnRateStatusLabel on BurnRateStatus {
   String get label {
@@ -11,6 +15,8 @@ extension BurnRateStatusLabel on BurnRateStatus {
         return 'Aman';
       case BurnRateStatus.terbatas:
         return 'Terbatas';
+      case BurnRateStatus.kritis:
+        return 'Kritis';
       case BurnRateStatus.overbudget:
         return 'Overbudget';
     }
@@ -52,8 +58,10 @@ class BurnRateResult {
 ///   Sisa Hari      = Tanggal Gajian Berikutnya - Hari Ini
 ///   Batas Aman Harian = Free Cash Flow / Sisa Hari
 class BurnRateCalculator {
-  /// Ambang batas aman (Rupiah per hari).
+  /// Batas harian (Rupiah per hari) untuk status Aman. Tepat di batas = aman.
   static const double batasAman = 30000;
+
+  /// Batas harian untuk status Terbatas; di bawahnya Kritis.
   static const double batasTerbatas = 10000;
 
   /// Hitung tanggal gajian berikutnya dari [tanggalGajian] (1-31).
@@ -91,12 +99,19 @@ class BurnRateCalculator {
     // Tagihan wajib = item bertanda wajib (bawaannya: jenis Tagihan) yang
     // jatuh tempo sebelum/pada tanggal gajian berikutnya (satu siklus gaji).
     //
+    // Tiap item dihitung sebanyak jumlah jatuh temponya dalam siklus itu:
+    // tagihan mingguan yang jatuh tempo 4x sebelum gajian memakai uang 4x,
+    // bukan sekali (lihat Bill.occurrencesUntil).
+    //
     // Memakai Bill.isMandatory, bukan langsung jenisnya, supaya angkanya
     // sejalan dengan kartu Dana Darurat yang memakai penanda yang sama —
     // kalau tidak, dua kartu bisa menyebut "tagihan wajib" dengan nilai beda.
     final totalWajib = bills
-        .where((b) => b.isMandatory && !b.dueDate.isAfter(payday))
-        .fold<double>(0, (sum, b) => sum + b.estimatedCost);
+        .where((b) => b.isMandatory)
+        .fold<double>(
+          0,
+          (sum, b) => sum + b.estimatedCost * b.occurrencesUntil(payday, current),
+        );
 
     final freeCashFlow = profile.totalPemasukan - totalWajib;
     final batasHarian = freeCashFlow / sisaHari;
@@ -104,10 +119,12 @@ class BurnRateCalculator {
     final BurnRateStatus status;
     if (freeCashFlow < 0) {
       status = BurnRateStatus.overbudget;
-    } else if (batasHarian > batasAman) {
+    } else if (batasHarian >= batasAman) {
       status = BurnRateStatus.aman;
-    } else {
+    } else if (batasHarian >= batasTerbatas) {
       status = BurnRateStatus.terbatas;
+    } else {
+      status = BurnRateStatus.kritis;
     }
 
     return BurnRateResult(

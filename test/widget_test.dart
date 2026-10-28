@@ -81,6 +81,11 @@ void main() {
     expect(bill.reminderDescription, 'H-7, H-3, H-1');
   });
 
+  test('Bill.reminderDescription menamai offset 0 sebagai Hari-H', () {
+    final bill = _sampleBill().copyWith(reminderOffsets: const [7, 0]);
+    expect(bill.reminderDescription, 'H-7, Hari-H');
+  });
+
   test('Bill toMap/fromMap round-trip', () {
     final bill = _sampleBill();
     final restored = Bill.fromMap(bill.toMap());

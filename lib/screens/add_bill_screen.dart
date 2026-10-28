@@ -105,7 +105,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
       return;
     }
     if (_offsets.isEmpty) {
-      _showSnack('Pilih minimal satu waktu pengingat (H-7/H-3/H-1)');
+      _showSnack('Pilih minimal satu waktu pengingat (H-7/H-3/H-1/Hari-H)');
       return;
     }
 
@@ -215,7 +215,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
             _label('Ingatkan Pada'),
             _reminderSection(),
             const SizedBox(height: 16),
-            _label('Ingatkan Sebelum Hari-H'),
+            _label('Waktu Pengingat'),
             _offsetSelector(),
             const SizedBox(height: 16),
             _label('Estimasi Biaya'),
@@ -583,11 +583,13 @@ class _AddBillScreenState extends State<AddBillScreen> {
     );
   }
 
-  /// Tombol H-7/H-3/H-1: biru penuh saat dipilih, putih saat tidak.
+  /// Tombol H-7/H-3/H-1/Hari-H: biru penuh saat dipilih, putih saat tidak.
   Widget _offsetSelector() {
     return Wrap(
       spacing: 8,
-      children: [7, 3, 1].map((d) {
+      // Empat tombol bisa turun ke baris kedua di layar sempit.
+      runSpacing: 8,
+      children: [7, 3, 1, 0].map((d) {
         final selected = _offsets.contains(d);
         return GestureDetector(
           onTap: () =>
@@ -602,7 +604,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
               ),
             ),
             child: Text(
-              'H-$d',
+              d == 0 ? 'Hari-H' : 'H-$d',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: selected ? Colors.white : AppColors.textMuted,

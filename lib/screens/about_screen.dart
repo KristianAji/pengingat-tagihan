@@ -89,7 +89,7 @@ class AboutScreen extends StatelessWidget {
     const features = [
       'Catat tagihan & belanja rutin',
       'Atur frekuensi pengulangan sendiri atau via preset',
-      'Pengingat H-7, H-3, H-1 sebelum jatuh tempo',
+      'Pengingat H-7, H-3, H-1, Hari-H, dan tiap hari bila telat',
       'Batas perulangan (contoh cicilan 12x)',
       'Tombol Lunasi & riwayat pembayaran',
     ];
